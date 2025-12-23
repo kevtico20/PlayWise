@@ -1,98 +1,150 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <ScrollView className="flex-1 bg-gray-50">
+      <View className="p-6">
+        {/* Hero Section */}
+        <View className="bg-blue-600 rounded-3xl p-8 mb-6">
+          <Text className="text-4xl font-bold text-white mb-3">
+            🎮 PlayWise
+          </Text>
+          <Text className="text-lg text-white mb-6">
+            Descubre, juega y comparte tus juegos favoritos
+          </Text>
+          <View className="flex-row gap-3">
+            <View className="bg-blue-500 px-4 py-2 rounded-full">
+              <Text className="text-white font-semibold">🎯 Acción</Text>
+            </View>
+            <View className="bg-blue-500 px-4 py-2 rounded-full">
+              <Text className="text-white font-semibold">🏆 RPG</Text>
+            </View>
+            <View className="bg-blue-500 px-4 py-2 rounded-full">
+              <Text className="text-white font-semibold">🎨 Indie</Text>
+            </View>
+          </View>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {/* Stats Cards */}
+        <View className="flex-row gap-3 mb-6">
+          <View className="flex-1 bg-white rounded-2xl p-5 border border-gray-200">
+            <Text className="text-3xl font-bold text-blue-600 mb-1">1.2K</Text>
+            <Text className="text-gray-600 text-sm">Juegos</Text>
+          </View>
+          <View className="flex-1 bg-white rounded-2xl p-5 border border-gray-200">
+            <Text className="text-3xl font-bold text-purple-600 mb-1">856</Text>
+            <Text className="text-gray-600 text-sm">Usuarios</Text>
+          </View>
+          <View className="flex-1 bg-white rounded-2xl p-5 border border-gray-200">
+            <Text className="text-3xl font-bold text-pink-600 mb-1">342</Text>
+            <Text className="text-gray-600 text-sm">Reseñas</Text>
+          </View>
+        </View>
+
+        {/* Featured Games */}
+        <View className="mb-6">
+          <Text className="text-2xl font-bold text-gray-800 mb-4">
+            Juegos Destacados
+          </Text>
+          
+          {/* Game Card 1 */}
+          <Pressable className="bg-white rounded-2xl mb-4 overflow-hidden border border-gray-200">
+            <View className="bg-orange-500 h-32 justify-end p-4">
+              <Text className="text-2xl font-bold text-white">🔥 Cyberpunk 2077</Text>
+            </View>
+            <View className="p-4">
+              <View className="flex-row items-center gap-2 mb-2">
+                <Text className="text-yellow-500 text-lg">★★★★☆</Text>
+                <Text className="text-gray-600 font-semibold">4.5</Text>
+              </View>
+              <Text className="text-gray-600 mb-3">
+                Explora Night City en este RPG futurista de mundo abierto
+              </Text>
+              <View className="flex-row gap-2">
+                <View className="bg-orange-100 px-3 py-1 rounded-full">
+                  <Text className="text-orange-700 text-xs font-semibold">RPG</Text>
+                </View>
+                <View className="bg-red-100 px-3 py-1 rounded-full">
+                  <Text className="text-red-700 text-xs font-semibold">Acción</Text>
+                </View>
+              </View>
+            </View>
+          </Pressable>
+
+          {/* Game Card 2 */}
+          <Pressable className="bg-white rounded-2xl mb-4 overflow-hidden border border-gray-200">
+            <View className="bg-green-500 h-32 justify-end p-4">
+              <Text className="text-2xl font-bold text-white">🌿 Zelda: TOTK</Text>
+            </View>
+            <View className="p-4">
+              <View className="flex-row items-center gap-2 mb-2">
+                <Text className="text-yellow-500 text-lg">★★★★★</Text>
+                <Text className="text-gray-600 font-semibold">5.0</Text>
+              </View>
+              <Text className="text-gray-600 mb-3">
+                Aventura épica en el reino de Hyrule con nuevas mecánicas
+              </Text>
+              <View className="flex-row gap-2">
+                <View className="bg-green-100 px-3 py-1 rounded-full">
+                  <Text className="text-green-700 text-xs font-semibold">Aventura</Text>
+                </View>
+                <View className="bg-blue-100 px-3 py-1 rounded-full">
+                  <Text className="text-blue-700 text-xs font-semibold">Exploración</Text>
+                </View>
+              </View>
+            </View>
+          </Pressable>
+
+          {/* Game Card 3 */}
+          <Pressable className="bg-white rounded-2xl overflow-hidden border border-gray-200">
+            <View className="bg-purple-500 h-32 justify-end p-4">
+              <Text className="text-2xl font-bold text-white">🎭 Hollow Knight</Text>
+            </View>
+            <View className="p-4">
+              <View className="flex-row items-center gap-2 mb-2">
+                <Text className="text-yellow-500 text-lg">★★★★★</Text>
+                <Text className="text-gray-600 font-semibold">4.9</Text>
+              </View>
+              <Text className="text-gray-600 mb-3">
+                Metroidvania desafiante con arte cautivador y combate preciso
+              </Text>
+              <View className="flex-row gap-2">
+                <View className="bg-purple-100 px-3 py-1 rounded-full">
+                  <Text className="text-purple-700 text-xs font-semibold">Indie</Text>
+                </View>
+                <View className="bg-pink-100 px-3 py-1 rounded-full">
+                  <Text className="text-pink-700 text-xs font-semibold">Plataformas</Text>
+                </View>
+              </View>
+            </View>
+          </Pressable>
+        </View>
+
+        {/* Action Buttons */}
+        <View className="gap-3 mb-6">
+          <Pressable className="bg-blue-600 py-5 rounded-2xl">
+            <Text className="text-white font-bold text-center text-lg">
+              🎮 Explorar Todos los Juegos
+            </Text>
+          </Pressable>
+          <Pressable className="bg-white border-2 border-blue-600 py-5 rounded-2xl">
+            <Text className="text-blue-600 font-bold text-center text-lg">
+              ⭐ Mi Lista de Deseos
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Success Badge */}
+        <View className="bg-green-500 rounded-2xl p-6 items-center">
+          <Text className="text-4xl mb-2">✅</Text>
+          <Text className="text-xl font-bold text-white text-center mb-1">
+            NativeWind Funcionando
+          </Text>
+          <Text className="text-white text-center text-sm">
+            Todos los estilos de Tailwind CSS están activos
+          </Text>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
