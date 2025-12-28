@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { View, useWindowDimensions } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, View, useWindowDimensions } from "react-native";
 import Svg, {
   ClipPath,
   Defs,
@@ -9,6 +9,12 @@ import Svg, {
 
 type DeviceType = "small" | "medium" | "large" | "xlarge";
 
+const IMAGES = [
+  require("../../assets/loginImages/img1.jpg"),
+  require("../../assets/loginImages/img2.jpg"),
+  require("../../assets/loginImages/img3.jpg"),
+];
+
 const getDeviceType = (width: number): DeviceType => {
   if (width <= 360) return "small";
   if (width <= 390) return "medium";
@@ -16,22 +22,25 @@ const getDeviceType = (width: number): DeviceType => {
   return "xlarge";
 };
 
-const DESIGN_CONFIG: Record<DeviceType, {
-  headerHeightRatio: number;
-  cutAngle: number;
-  lineBottomRatio: number;
-  longTriangle: {
-    widthRatio: number;
-    heightRatio: number;
-    bottomRatio: number;
-    rotate: number;
-  };
-  rightTriangle: {
-    widthRatio: number;
-    heightRatio: number;
-    bottomRatio: number;
-  };
-}> = {
+const DESIGN_CONFIG: Record<
+  DeviceType,
+  {
+    headerHeightRatio: number;
+    cutAngle: number;
+    lineBottomRatio: number;
+    longTriangle: {
+      widthRatio: number;
+      heightRatio: number;
+      bottomRatio: number;
+      rotate: number;
+    };
+    rightTriangle: {
+      widthRatio: number;
+      heightRatio: number;
+      bottomRatio: number;
+    };
+  }
+> = {
   small: {
     headerHeightRatio: 1.05,
     cutAngle: 18,
@@ -65,7 +74,7 @@ const DESIGN_CONFIG: Record<DeviceType, {
     },
   },
   large: {
-    headerHeightRatio: .9,
+    headerHeightRatio: 0.9,
     cutAngle: 22,
     lineBottomRatio: 0.19,
     longTriangle: {
@@ -98,17 +107,63 @@ const DESIGN_CONFIG: Record<DeviceType, {
   },
 };
 
+const AnimatedSvgImage = Animated.createAnimatedComponent(SvgImage);
+
 export default function LoginHeader() {
   const { width } = useWindowDimensions();
   const [layout, setLayout] = useState({ width: 0, height: 0 });
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const AnimatedSvgImage = Animated.createAnimatedComponent(SvgImage);
 
   const deviceType = getDeviceType(width);
   const config = DESIGN_CONFIG[deviceType];
 
   const HEADER_HEIGHT = width * config.headerHeightRatio;
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const animate = () => {
+      if (!isMounted) return;
+
+      // Fade OUT
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }).start(() => {
+        if (!isMounted) return;
+
+        // Cambiar imagen cuando está invisible
+        setCurrentIndex((prev) => (prev + 1) % IMAGES.length);
+
+        // Fade IN
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }).start(() => {
+          // Espera antes de la siguiente animación
+          setTimeout(animate, 3500);
+        });
+      });
+    };
+
+    // Iniciar animación
+    const timeout = setTimeout(animate, 3000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeout);
+    };
+  }, []);
+
   return (
-    <View style={{ height: HEADER_HEIGHT, width: "100%", position: "relative" }}>
+    <View
+      style={{ height: HEADER_HEIGHT, width: "100%", position: "relative" }}
+    >
       {/* ================= LÍNEA BLANCA ================= */}
       {layout.height > 0 && (
         <View
@@ -140,14 +195,7 @@ export default function LoginHeader() {
           }}
           viewBox="0 0 100 100"
         >
-          <Polygon
-            points="
-              100,100
-              50,0
-              100,45
-            "
-            fill="#FFFFFF"
-          />
+          <Polygon points="100,100 50,0 100,45" fill="#FFFFFF" />
         </Svg>
       )}
 
@@ -166,18 +214,11 @@ export default function LoginHeader() {
           }}
           viewBox="0 0 100 100"
         >
-          <Polygon
-            points="
-              0,0
-              400,10
-              0,100
-            "
-            fill="#FFFFFF"
-          />
+          <Polygon points="0,0 400,10 0,100" fill="#FFFFFF" />
         </Svg>
       )}
 
-      {/* ================= IMAGEN CON CORTE ================= */}
+      {/* ================= IMAGEN CON CORTE + FADE ================= */}
       <View style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
         <View
           style={{ width: "100%", height: "100%" }}
@@ -188,44 +229,34 @@ export default function LoginHeader() {
             })
           }
         >
-          {layout.width > 0 && layout.height > 0 && (
-            <Svg
-              width={layout.width}
-              height={layout.height}
-              viewBox={`0 0 ${layout.width} ${layout.height}`}
-            >
+          {layout.width > 0 && (
+            <Svg width={layout.width} height={layout.height}>
               <Defs>
                 <ClipPath id="clip">
-                  {(() => {
-                    const angleRad =
-                      (config.cutAngle * Math.PI) / 180;
-                    const cut =
-                      Math.tan(angleRad) * layout.width;
-
-                    return (
-                      <Polygon
-                        points={`
-                          0,0
-                          ${layout.width},0
-                          ${layout.width},${layout.height - cut}
-                          0,${layout.height}
-                        `}
-                      />
-                    );
-                  })()}
+                  <Polygon
+                    points={`
+                      0,0
+                      ${layout.width},0
+                      ${layout.width},${
+                        layout.height -
+                        Math.tan((config.cutAngle * Math.PI) / 180) *
+                          layout.width
+                      }
+                      0,${layout.height}
+                    `}
+                  />
                 </ClipPath>
               </Defs>
 
-              <SvgImage
-                href={{
-                  uri: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&q=80",
-                }}
-                x={-layout.width * 0.2}
-                y={-layout.height * 0.15}
+              <AnimatedSvgImage
+                href={IMAGES[currentIndex]}
                 width={layout.width * 1.45}
                 height={layout.height * 1.35}
+                x={-layout.width * 0.2}
+                y={-layout.height * 0.15}
                 preserveAspectRatio="xMidYMid slice"
                 clipPath="url(#clip)"
+                opacity={fadeAnim}
               />
             </Svg>
           )}
