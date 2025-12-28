@@ -1,47 +1,100 @@
+import { useState } from "react";
 import { View, useWindowDimensions } from "react-native";
 import Svg, {
-  Defs,
   ClipPath,
-  Image as SvgImage,
+  Defs,
   Polygon,
+  Image as SvgImage,
 } from "react-native-svg";
-import { useState } from "react";
 
-const getDeviceType = (width:number) => {
+type DeviceType = "small" | "medium" | "large" | "xlarge";
+
+const getDeviceType = (width: number): DeviceType => {
   if (width <= 360) return "small";
   if (width <= 390) return "medium";
   if (width <= 430) return "large";
   return "xlarge";
 };
 
-const DESIGN_CONFIG = {
+const DESIGN_CONFIG: Record<DeviceType, {
+  headerHeightRatio: number;
+  cutAngle: number;
+  lineBottomRatio: number;
+  longTriangle: {
+    widthRatio: number;
+    heightRatio: number;
+    bottomRatio: number;
+    rotate: number;
+  };
+  rightTriangle: {
+    widthRatio: number;
+    heightRatio: number;
+    bottomRatio: number;
+  };
+}> = {
   small: {
     headerHeightRatio: 1.05,
     cutAngle: 18,
-    lineBottomRatio: 0.28,
-    triangleWidthRatio: 0.30,
-    triangleHeightRatio: 0.42,
+    lineBottomRatio: 0.13,
+    longTriangle: {
+      widthRatio: 2.1,
+      heightRatio: 0.2,
+      bottomRatio: 0.3,
+      rotate: -20,
+    },
+    rightTriangle: {
+      widthRatio: 0.48,
+      heightRatio: 0.52,
+      bottomRatio: 0.3,
+    },
   },
   medium: {
     headerHeightRatio: 0.95,
     cutAngle: 20,
-    lineBottomRatio: 0.32,
-    triangleWidthRatio: 0.28,
-    triangleHeightRatio: 0.45,
+    lineBottomRatio: 0.17,
+    longTriangle: {
+      widthRatio: 2.29,
+      heightRatio: 0.2,
+      bottomRatio: 0.26,
+      rotate: -22,
+    },
+    rightTriangle: {
+      widthRatio: 0.53,
+      heightRatio: 0.45,
+      bottomRatio: 0.22,
+    },
   },
   large: {
-    headerHeightRatio: 0.9,
+    headerHeightRatio: .9,
     cutAngle: 22,
-    lineBottomRatio: 0.34,
-    triangleWidthRatio: 0.26,
-    triangleHeightRatio: 0.48,
+    lineBottomRatio: 0.19,
+    longTriangle: {
+      widthRatio: 2.4,
+      heightRatio: 0.18,
+      bottomRatio: 0.24,
+      rotate: -24,
+    },
+    rightTriangle: {
+      widthRatio: 0.54,
+      heightRatio: 0.48,
+      bottomRatio: 0.2,
+    },
   },
   xlarge: {
     headerHeightRatio: 0.85,
     cutAngle: 24,
-    lineBottomRatio: 0.42,
-    triangleWidthRatio: 0.24,
-    triangleHeightRatio: 0.5,
+    lineBottomRatio: 0.23,
+    longTriangle: {
+      widthRatio: 2.39,
+      heightRatio: 0.17,
+      bottomRatio: 0.22,
+      rotate: -26,
+    },
+    rightTriangle: {
+      widthRatio: 0.2,
+      heightRatio: 0.6,
+      bottomRatio: 0.24,
+    },
   },
 };
 
@@ -64,7 +117,7 @@ export default function LoginHeader() {
             position: "absolute",
             left: -layout.width,
             bottom: layout.height * config.lineBottomRatio,
-            width: layout.width * 3.69,
+            width: layout.width * 3,
             height: layout.height * 0.015,
             backgroundColor: "#FFFFFF",
             transform: [{ rotate: `-${config.cutAngle}deg` }],
@@ -79,16 +132,46 @@ export default function LoginHeader() {
           pointerEvents="none"
           style={{
             position: "absolute",
-            right: -layout.width * 0.05,
-            bottom: layout.height * 0.05,
-            width: layout.width * config.triangleWidthRatio,
-            height: layout.height * config.triangleHeightRatio,
+            right: -width * 0.05,
+            bottom: -layout.height * config.rightTriangle.bottomRatio,
+            width: width * config.rightTriangle.widthRatio,
+            height: layout.height * config.rightTriangle.heightRatio,
             zIndex: 20,
           }}
           viewBox="0 0 100 100"
         >
           <Polygon
-            points="100,100 35,0 100,0"
+            points="
+              100,100
+              50,0
+              100,45
+            "
+            fill="#FFFFFF"
+          />
+        </Svg>
+      )}
+
+      {/* ================= TRIÁNGULO LARGO ================= */}
+      {layout.height > 0 && (
+        <Svg
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: -width * 1.2,
+            bottom: -layout.height * config.longTriangle.bottomRatio,
+            width: width * config.longTriangle.widthRatio,
+            height: layout.height * config.longTriangle.heightRatio,
+            zIndex: 20,
+            transform: [{ rotate: `${config.longTriangle.rotate}deg` }],
+          }}
+          viewBox="0 0 100 100"
+        >
+          <Polygon
+            points="
+              0,0
+              400,10
+              0,100
+            "
             fill="#FFFFFF"
           />
         </Svg>
@@ -114,16 +197,18 @@ export default function LoginHeader() {
               <Defs>
                 <ClipPath id="clip">
                   {(() => {
-                    const angleRad = (config.cutAngle * Math.PI) / 180;
-                    const cut = Math.tan(angleRad) * layout.width;
+                    const angleRad =
+                      (config.cutAngle * Math.PI) / 180;
+                    const cut =
+                      Math.tan(angleRad) * layout.width;
 
                     return (
                       <Polygon
                         points={`
                           0,0
                           ${layout.width},0
-                          ${layout.width},${layout.height - cut * 1}
-                          0,${layout.height * 1}
+                          ${layout.width},${layout.height - cut}
+                          0,${layout.height}
                         `}
                       />
                     );
@@ -133,8 +218,7 @@ export default function LoginHeader() {
 
               <SvgImage
                 href={{
-                  uri:
-                    "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&q=80",
+                  uri: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1600&q=80",
                 }}
                 x={-layout.width * 0.2}
                 y={-layout.height * 0.15}
