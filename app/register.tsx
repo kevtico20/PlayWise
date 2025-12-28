@@ -1,22 +1,21 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    Keyboard,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  ActivityIndicator,
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
 import GradientBackground from "../components/GradientBackground";
 
-import Input from "../components/common/Input";
+import AnimatedHintInput from "../components/common/AnimatedHintInput";
 import NumberInput from "../components/common/NumberInput";
-import PasswordInput from "../components/common/PasswordInput";
 import DecorativeTriangles from "../components/login/DecorativeTriangles";
 import LoginButton from "../components/login/LoginButton";
 import LoginHeader from "../components/login/LoginHeader";
@@ -27,11 +26,13 @@ import authService from "../services/authService";
 export default function RegisterScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+
   const [email, setEmail] = useState("");
   const [nickname, setNickname] = useState("");
   const [age, setAge] = useState<number | null>(null);
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
   const [errors, setErrors] = useState({
     email: "",
     nickname: "",
@@ -48,7 +49,6 @@ export default function RegisterScreen() {
     };
     let isValid = true;
 
-    // Validar email
     if (!email.trim()) {
       newErrors.email = t("auth.fillAllFields");
       isValid = false;
@@ -57,7 +57,6 @@ export default function RegisterScreen() {
       isValid = false;
     }
 
-    // Validar nickname
     if (!nickname.trim()) {
       newErrors.nickname = t("auth.fillAllFields");
       isValid = false;
@@ -66,13 +65,11 @@ export default function RegisterScreen() {
       isValid = false;
     }
 
-    // Validar age
     if (age === null || age < 13) {
       newErrors.age = t("auth.fillAllFields");
       isValid = false;
     }
 
-    // Validar password
     if (!password) {
       newErrors.password = t("auth.fillAllFields");
       isValid = false;
@@ -86,41 +83,25 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    // Validar formulario
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
     Keyboard.dismiss();
 
     try {
-      // Intentar registro
       const response = await authService.register({
         username: nickname.trim(),
         email: email.trim(),
-        password: password,
+        password,
         age: age?.toString(),
       });
 
-      // Mostrar mensaje de éxito
       Alert.alert(
         "¡Éxito!",
         response.message || t("auth.registerSuccess"),
-        [
-          {
-            text: "OK",
-            onPress: () => {
-              // Volver al login
-              router.back();
-            },
-          },
-        ]
+        [{ text: "OK", onPress: () => router.back() }]
       );
     } catch (error: any) {
-      console.error("Register error:", error);
-
-      // Manejar diferentes tipos de errores
       let errorMessage = t("auth.registerError");
 
       if (error.status === 0) {
@@ -135,10 +116,6 @@ export default function RegisterScreen() {
     }
   };
 
-  const handleBackToLogin = () => {
-    router.back();
-  };
-
   return (
     <GradientBackground>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -147,45 +124,42 @@ export default function RegisterScreen() {
           className="flex-1"
         >
           <ScrollView
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
             <LoginHeader />
 
-            {/* Contenido del formulario */}
             <View className="px-8 pt-8">
               <LoginTitle />
 
-              {/* Inputs de formulario */}
               <View className="mb-6 mt-4">
-                <Input
+                {/* Email */}
+                <AnimatedHintInput
                   label={t("auth.email")}
-                  placeholder={t("auth.email")}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
                     setErrors({ ...errors, email: "" });
                   }}
-                  autoCapitalize="none"
                   keyboardType="email-address"
-                  error={errors.email}
                   editable={!loading}
+                  error={errors.email}
                 />
 
-                <Input
+                {/* Nickname */}
+                <AnimatedHintInput
                   label={t("auth.nickname")}
-                  placeholder={t("auth.nickname")}
                   value={nickname}
                   onChangeText={(text) => {
                     setNickname(text);
                     setErrors({ ...errors, nickname: "" });
                   }}
-                  autoCapitalize="none"
-                  error={errors.nickname}
                   editable={!loading}
+                  error={errors.nickname}
                 />
 
+                {/* Edad */}
                 <NumberInput
                   label={t("auth.age")}
                   value={age}
@@ -200,31 +174,29 @@ export default function RegisterScreen() {
                   error={errors.age}
                 />
 
-                <PasswordInput
+                {/* Password */}
+                <AnimatedHintInput
                   label={t("auth.password")}
-                  placeholder={t("auth.password")}
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
                     setErrors({ ...errors, password: "" });
                   }}
-                  error={errors.password}
                   editable={!loading}
+                  error={errors.password}
                 />
               </View>
 
-              {/* Indicador de carga */}
               {loading && (
                 <View className="mb-4">
                   <ActivityIndicator size="large" color="#ffffff" />
                 </View>
               )}
 
-              {/* Enlace volver al login */}
               <TouchableOpacity
                 className="self-center mb-8"
                 activeOpacity={0.7}
-                onPress={handleBackToLogin}
+                onPress={() => router.back()}
               >
                 <View className="flex-row items-center py-2">
                   <View className="w-12 h-0.5 bg-white opacity-60 mr-3" />
@@ -235,7 +207,6 @@ export default function RegisterScreen() {
                 </View>
               </TouchableOpacity>
 
-              {/* Botón de registro */}
               <LoginButton
                 onPress={handleRegister}
                 title={loading ? t("common.loading") : t("auth.registerButton")}
@@ -243,8 +214,7 @@ export default function RegisterScreen() {
               />
             </View>
 
-            {/* Decoraciones */}
-            <View className="mt-auto">
+            <View className="absolute bottom-0 left-0 right-0 pointer-events-none">
               <DecorativeTriangles />
             </View>
           </ScrollView>
