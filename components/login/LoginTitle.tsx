@@ -2,7 +2,7 @@ import { Text, View } from 'react-native';
 
 export default function LoginTitle() {
   return (
-    <View className="mb-8">
+    <View className="mb-0 mt-1">
       <Text className="text-3xl font-bold text-center mb-2">
         <Text style={{ color: '#DB0000' }}>READY </Text>
         <Text className="text-white">TO PLAY?</Text>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, View, useWindowDimensions } from "react-native";
+import { Animated, Easing, View, useWindowDimensions } from "react-native";
 import Svg, {
   ClipPath,
   Defs,
@@ -14,6 +14,10 @@ const IMAGES = [
   require("../../assets/loginImages/img2.jpg"),
   require("../../assets/loginImages/img3.jpg"),
 ];
+
+const IMAGE_LABELS = ["img1", "img2", "img3"];
+
+const AnimatedSvgImage = Animated.createAnimatedComponent(SvgImage);
 
 const getDeviceType = (width: number): DeviceType => {
   if (width <= 360) return "small";
@@ -107,56 +111,122 @@ const DESIGN_CONFIG: Record<
   },
 };
 
-const AnimatedSvgImage = Animated.createAnimatedComponent(SvgImage);
-
 export default function LoginHeader() {
   const { width } = useWindowDimensions();
   const [layout, setLayout] = useState({ width: 0, height: 0 });
-  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const AnimatedSvgImage = Animated.createAnimatedComponent(SvgImage);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [nextIndex, setNextIndex] = useState(1);
+
+  // Index refs to avoid stale closures in animation callbacks
+  const currentIndexRef = useRef(0);
+  const nextIndexRef = useRef(1);
+
+  // Mantener todas las imágenes montadas y animar sus opacidades individualmente
+  const imageOpacitiesRef = useRef(
+    IMAGES.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))
+  );
+  const imageOpacities = imageOpacitiesRef.current;
+
+  // Refs para limitar el spam de logs de opacidad (por ciclo)
+  const lastCurrentOpacityLogRef = useRef(0);
+  const lastNextOpacityLogRef = useRef(0);
 
   const deviceType = getDeviceType(width);
   const config = DESIGN_CONFIG[deviceType];
-
   const HEADER_HEIGHT = width * config.headerHeightRatio;
+
+  // Debug básico de montaje/desmontaje
+  useEffect(() => {
+    console.log('[LoginHeader] montaje. índiceActual', currentIndexRef.current, 'índiceSiguiente', nextIndexRef.current);
+    return () => {
+      console.log('[LoginHeader] desmontaje');
+    };
+  }, []);
+
+  // Logs de cambio de índices deshabilitados para evitar confusión de "recarga"
 
   useEffect(() => {
     let isMounted = true;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     const animate = () => {
       if (!isMounted) return;
 
-      // Fade OUT
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      }).start(() => {
+      // Precompute next index (solo ref, sin setState para evitar re-render)
+      const preNext = (currentIndexRef.current + 1) % IMAGES.length;
+      console.log('[LoginHeader] ciclo de animación. índiceActualRef', currentIndexRef.current, 'índiceSiguienteRef', nextIndexRef.current, 'preNext', preNext);
+      if (nextIndexRef.current !== preNext) {
+        nextIndexRef.current = preNext;
+        console.log('[LoginHeader] estableciendo índiceSiguiente a preNext', preNext, '->', IMAGE_LABELS[preNext]);
+      }
+
+      // Crossfade: actual 1->0, siguiente 0->1 with easing
+      console.log('[LoginHeader] iniciando crossfade de', IMAGE_LABELS[currentIndexRef.current], 'a', IMAGE_LABELS[nextIndexRef.current]);
+
+      // listeners temporales de opacidad para este ciclo
+      const curIdx = currentIndexRef.current;
+      const nxtIdx = nextIndexRef.current;
+      const id1 = imageOpacities[curIdx].addListener(({ value }) => {
+        const now = Date.now();
+        if (now - lastCurrentOpacityLogRef.current > 120 || value === 0 || value === 1) {
+          lastCurrentOpacityLogRef.current = now;
+          console.log('[LoginHeader] opacidadActual', value);
+        }
+      });
+      const id2 = imageOpacities[nxtIdx].addListener(({ value }) => {
+        const now = Date.now();
+        if (now - lastNextOpacityLogRef.current > 120 || value === 0 || value === 1) {
+          lastNextOpacityLogRef.current = now;
+          console.log('[LoginHeader] opacidadSiguiente', value);
+        }
+      });
+
+      Animated.parallel([
+        Animated.timing(imageOpacities[curIdx], {
+          toValue: 0,
+          duration: 1200,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+        Animated.timing(imageOpacities[nxtIdx], {
+          toValue: 1,
+          duration: 1200,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: false,
+        }),
+      ]).start(() => {
         if (!isMounted) return;
 
-        // Cambiar imagen cuando está invisible
-        setCurrentIndex((prev) => (prev + 1) % IMAGES.length);
+        // limpiar listeners temporales de este ciclo
+        imageOpacities[curIdx].removeListener(id1);
+        imageOpacities[nxtIdx].removeListener(id2);
 
-        // Fade IN
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }).start(() => {
-          // Espera antes de la siguiente animación
-          setTimeout(animate, 3500);
-        });
+        // Promote next to current (solo refs, sin state updates para evitar re-render)
+        const newCurrent = nextIndexRef.current;
+        console.log('[LoginHeader] crossfade completo. nuevoActual', newCurrent, '->', IMAGE_LABELS[newCurrent]);
+        currentIndexRef.current = newCurrent;
+
+        // Prepare upcoming next
+        const newNext = (newCurrent + 1) % IMAGES.length;
+        console.log('[LoginHeader] preparar próximo siguiente', newNext, '->', IMAGE_LABELS[newNext]);
+        nextIndexRef.current = newNext;
+
+        // Asegurar que la próxima imagen esté oculta (debe estar ya en 0)
+        imageOpacities[newNext].setValue(0);
+
+        // Pause before next cycle
+        console.log('[LoginHeader] programar próximo ciclo en 3500ms');
+        timeoutId = setTimeout(animate, 3500);
       });
     };
 
-    // Iniciar animación
-    const timeout = setTimeout(animate, 3000);
+    // Start after initial display
+    timeoutId = setTimeout(animate, 3000);
 
     return () => {
       isMounted = false;
-      clearTimeout(timeout);
+      clearTimeout(timeoutId);
     };
   }, []);
 
@@ -222,12 +292,12 @@ export default function LoginHeader() {
       <View style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
         <View
           style={{ width: "100%", height: "100%" }}
-          onLayout={(e) =>
-            setLayout({
-              width: e.nativeEvent.layout.width,
-              height: e.nativeEvent.layout.height,
-            })
-          }
+          onLayout={(e) => {
+            const w = e.nativeEvent.layout.width;
+            const h = e.nativeEvent.layout.height;
+            console.log('[LoginHeader] establecer layout', w, h);
+            setLayout({ width: w, height: h });
+          }}
         >
           {layout.width > 0 && (
             <Svg width={layout.width} height={layout.height}>
@@ -235,29 +305,33 @@ export default function LoginHeader() {
                 <ClipPath id="clip">
                   <Polygon
                     points={`
-                      0,0
-                      ${layout.width},0
-                      ${layout.width},${
-                        layout.height -
-                        Math.tan((config.cutAngle * Math.PI) / 180) *
-                          layout.width
-                      }
-                      0,${layout.height}
-                    `}
+          0,0
+          ${layout.width},0
+          ${layout.width},
+          ${
+            layout.height -
+            Math.tan((config.cutAngle * Math.PI) / 180) * layout.width
+          }
+          0,${layout.height}
+        `}
                   />
                 </ClipPath>
               </Defs>
 
-              <AnimatedSvgImage
-                href={IMAGES[currentIndex]}
-                width={layout.width * 1.45}
-                height={layout.height * 1.35}
-                x={-layout.width * 0.2}
-                y={-layout.height * 0.15}
-                preserveAspectRatio="xMidYMid slice"
-                clipPath="url(#clip)"
-                opacity={fadeAnim}
-              />
+              {/* Renderizar todas las imágenes en orden fijo - las opacidades controlan visibilidad */}
+              {IMAGES.map((src, i) => (
+                <AnimatedSvgImage
+                  key={IMAGE_LABELS[i]}
+                  href={src}
+                  width={layout.width * 1.45}
+                  height={layout.height * 1.35}
+                  x={-layout.width * 0.2}
+                  y={-layout.height * 0.15}
+                  preserveAspectRatio="xMidYMid slice"
+                  clipPath="url(#clip)"
+                  opacity={imageOpacities[i]}
+                />
+              ))}
             </Svg>
           )}
         </View>
