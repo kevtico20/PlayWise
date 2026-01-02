@@ -13,12 +13,21 @@ interface GameSectionProps {
   title: string;
   games: Game[];
   textColor?: string;
+  onLoadMore?: () => void;
+  isLoadingMore?: boolean;
 }
 
-export default function GameSection({ title, games, textColor = '#FFFFFF' }: GameSectionProps) {
+export default function GameSection({ title, games, textColor = '#FFFFFF', onLoadMore, isLoadingMore = false }: GameSectionProps) {
   return (
     <View style={styles.container}>
-      <Text style={[styles.sectionTitle, { color: textColor }]}>{title}</Text>
+      <View style={styles.headerRow}>
+        <Text style={[styles.sectionTitle, { color: textColor }]}>{title}</Text>
+        {onLoadMore && (
+          <Text style={styles.loadMore} onPress={() => !isLoadingMore && onLoadMore()}>
+            {isLoadingMore ? 'Cargando...' : 'Ver más'}
+          </Text>
+        )}
+      </View>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -49,5 +58,18 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 14,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    marginBottom: 8,
+  },
+  loadMore: {
+    color: '#888',
+    fontSize: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
 });

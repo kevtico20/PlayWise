@@ -1,49 +1,17 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { SafeAreaView, ScrollView, StyleSheet, View, Text } from 'react-native';
 import GameSection from '../../../components/main/GameSection';
 import HeroSection from '../../../components/main/HeroSection';
+import ErrorBoundary from '../../../components/common/ErrorBoundary';
+import ScreenSuspense from '../../../components/common/ScreenSuspense';
+import SectionSkeleton from '../../../components/common/SectionSkeleton';
 import MainHeader from '../../../components/main/MainHeader';
 import { APP_COLORS } from '../../../constants/colors';
+import GAME_CATEGORIES from '../../../constants/gameCategories';
+import { getGamesByGenre, RawgGameShort, getTopRatedGames } from '../../../services/rawgService';
 
-// Mock data - Replace with actual data from your API
-const heroGames = [
-  {
-    image: 'https://www.figma.com/api/mcp/asset/085d4e62-6abc-4a11-a678-d84c27c6ed57',
-    title: 'Elden Ring',
-    description: "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s.",
-    genre: 'RPG-Action',
-    rating: 5,
-  },
-  {
-    image: 'https://www.figma.com/api/mcp/asset/6ccd8db6-fdc4-434c-b6f4-356de3f60c3d',
-    title: 'Resident Evil Village',
-    description: "Experience survival horror like never before in the eighth major installment in the Resident Evil series. Set a few years after the horrifying events in the critically acclaimed Resident Evil 7 biohazard.",
-    genre: 'Horror-Action',
-    rating: 4,
-  },
-  {
-    image: 'https://www.figma.com/api/mcp/asset/d67d3804-4946-42c3-b56f-fb119fc73124',
-    title: 'Red Dead Redemption II',
-    description: "America, 1899. The end of the Wild West era has begun. After a robbery goes badly wrong in the western town of Blackwater, Arthur Morgan and the Van der Linde gang are forced to flee.",
-    genre: 'RPG-Action',
-    rating: 5,
-  },
-  {
-    image: 'https://www.figma.com/api/mcp/asset/709218ad-892c-4f70-ab7b-1faf74e82e15',
-    title: 'Battlefield 1',
-    description: "Experience the dawn of all-out war in Battlefield 1. Discover a world at war through an adventure-filled campaign, or join in epic multiplayer battles with up to 64 players.",
-    genre: 'Shooter-Action',
-    rating: 4,
-  },
-  {
-    image: 'https://www.figma.com/api/mcp/asset/6ccd8db6-fdc4-434c-b6f4-356de3f60c3d',
-    title: 'The Last of Us',
-    description: "Experience the emotional storytelling and unforgettable characters in The Last of Us, winner of over 200 Game of the Year awards.",
-    genre: 'Action-Adventure',
-    rating: 5,
-  },
-];
+// Hero images will be loaded dynamically from RAWG (top-rated games)
 
 const recommendedGames = [
   {
@@ -126,39 +94,171 @@ const classicGames = [
   },
 ];
 
+interface Game {
+  id: string;
+  image: string;
+  title: string;
+  genre: string;
+}
+
+type CategoryState = {
+  games: Game[];
+  page: number;
+  loading: boolean;
+  hasMore: boolean;
+};
+
 export default function MainScreen() {
+  const [categoriesData, setCategoriesData] = useState<Record<string, CategoryState>>(() => {
+    const init: Record<string, CategoryState> = {};
+    GAME_CATEGORIES.forEach((c) => {
+      init[c.key] = { games: [], page: 0, loading: false, hasMore: true };
+    });
+    return init;
+  });
+
+  const [heroGames, setHeroGames] = useState<{
+    image: string;
+    title: string;
+    description: string;
+    genre: string;
+    rating: number;
+  }[]>([]);
+
+  const PAGE_SIZE = 6;
+
+  function mapRawg(item: RawgGameShort): Game {
+    return {
+      id: String(item.id),
+      image: item.background_image || '',
+      title: item.name,
+      genre: item.genres && item.genres.length ? item.genres[0].name : '',
+    };
+  }
+
+  async function loadCategory(key: string, pageToLoad = 1) {
+    const cat = GAME_CATEGORIES.find((c) => c.key === key);
+    if (!cat) return;
+
+    setCategoriesData((prev) => ({
+      ...prev,
+      [key]: { ...prev[key], loading: true },
+    }));
+
+    try {
+      const resp = await getGamesByGenre(cat.rawgSlug, pageToLoad, PAGE_SIZE);
+      const items = (resp.results || []).map(mapRawg);
+
+      setCategoriesData((prev) => {
+        const prevGames = pageToLoad === 1 ? [] : prev[key].games;
+        const merged = [...prevGames, ...items];
+        return {
+          ...prev,
+          [key]: {
+            games: merged,
+            page: pageToLoad,
+            loading: false,
+            hasMore: (resp.results || []).length === PAGE_SIZE,
+          },
+        };
+      });
+    } catch (err) {
+      console.warn('Error loading category', key, err);
+      setCategoriesData((prev) => ({ ...prev, [key]: { ...prev[key], loading: false } }));
+    }
+  }
+
+  useEffect(() => {
+    // Load first page for each category in parallel
+    GAME_CATEGORIES.forEach((c) => {
+      loadCategory(c.key, 1);
+    });
+    // Load top-rated games for hero
+    (async () => {
+      try {
+        const tops = await getTopRatedGames(1, 5);
+        const mapped = tops.map((t) => ({
+          image: t.background_image || '',
+          title: t.name,
+          description: (t as any).description_raw || '',
+          genre: t.genres && t.genres.length ? t.genres[0].name : '',
+          rating: t.rating || 0,
+        }));
+        setHeroGames(mapped);
+        // Debug: print top games info (title, rating, truncated description) to help inspect RAWG response
+        // try {
+        //   // eslint-disable-next-line no-console
+        //   console.log('[DEBUG] Top hero games: ' + JSON.stringify(
+        //     mapped.map(m => ({ title: m.title, rating: m.rating, description: (m.description || '').slice(0, 200) })),
+        //     null,
+        //     2
+        //   ));
+        // } catch (e) {
+        //   // ignore
+        // }
+      } catch (err) {
+        console.warn('Error loading top-rated games', err);
+      }
+    })();
+  }, []);
+
   return (
     <View style={styles.container}>
       <LinearGradient
         colors={[APP_COLORS.gradientTop, APP_COLORS.gradientBottom]}
         style={styles.gradient}
       >
-        <SafeAreaView style={styles.safeArea}>
+          <SafeAreaView style={styles.safeArea}>
+          {/* Suspense-like loading UI while main content loads */}
+          <ScreenSuspense
+            loading={
+              heroGames.length === 0 &&
+              Object.values(categoriesData).every((s) => (s.games || []).length === 0)
+            }
+          >
           <ScrollView
             style={styles.scrollView}
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.heroContainer}>
-              <HeroSection games={heroGames} />
+              {/* Hero: show skeleton until heroGames are loaded */}
+              {heroGames.length === 0 ? (
+                <View style={{ height: 340, width: '100%', justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ color: '#fff' }}>Cargando hero...</Text>
+                </View>
+              ) : (
+                <ErrorBoundary>
+                  <HeroSection games={heroGames} />
+                </ErrorBoundary>
+              )}
               <MainHeader userName="K" />
             </View>
-            
-            <GameSection
-              title="Recommended Games"
-              games={recommendedGames}
-            />
-            
-            <GameSection
-              title="Award-winning games"
-              games={awardWinningGames}
-              textColor="#D9D9D9"
-            />
-            
-            <GameSection
-              title="Classics"
-              games={classicGames}
-            />
+
+            {GAME_CATEGORIES.map((cat) => (
+              categoriesData[cat.key] && categoriesData[cat.key].games && categoriesData[cat.key].games.length > 0 ? (
+                <GameSection
+                  key={cat.key}
+                  title={cat.title}
+                  games={categoriesData[cat.key]?.games || []}
+                  onLoadMore={() => {
+                    const state = categoriesData[cat.key];
+                    if (!state || state.loading || !state.hasMore) return;
+                    loadCategory(cat.key, state.page + 1);
+                  }}
+                  isLoadingMore={categoriesData[cat.key]?.loading}
+                />
+              ) : (
+                // Show per-section skeleton while this category is empty
+                <View key={cat.key} style={{ marginBottom: 12 }}>
+                  <Text style={{ color: '#fff', marginLeft: 12, marginBottom: 8 }}>{cat.title}</Text>
+                  <View style={{ paddingHorizontal: 12 }}>
+                    <SectionSkeleton />
+                  </View>
+                </View>
+              )
+            ))}
           </ScrollView>
+          </ScreenSuspense>
         </SafeAreaView>
       </LinearGradient>
     </View>

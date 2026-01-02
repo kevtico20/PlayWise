@@ -1,7 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Animated, Easing, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface HeroGame {
   image: string;
@@ -18,6 +17,13 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ games, duration = 1200, interval = 5000 }: HeroSectionProps) {
+  // DEBUG: log entry to help trace why placeholder was showing and where errors occur
+  // Metro will show these logs in the console. Remove or lower verbosity when fixed.
+  // eslint-disable-next-line no-console
+  console.log('[HeroSection] render - games length =', games ? games.length : 0);
+  if (!games || games.length === 0) return null;
+
+  // NOTE: DEBUG minimal render removed — restoring full hero UI for step 1 (gestures still disabled)
   // Usar state solo para forzar re-render cuando sea necesario (para mostrar el juego actual)
   const [displayIndex, setDisplayIndex] = useState(0);
 
@@ -25,18 +31,31 @@ export default function HeroSection({ games, duration = 1200, interval = 5000 }:
   const currentIndexRef = useRef(0);
   const nextIndexRef = useRef(1);
 
-  // Mantener todas las imágenes montadas y animar sus opacidades individualmente
-  const imageOpacitiesRef = useRef(
-    games.map((_, i) => new Animated.Value(i === 0 ? 1 : 0))
-  );
-  const imageOpacities = imageOpacitiesRef.current;
-
-  // Progress animations para las barras
-  const progressAnimsRef = useRef(
-    games.map(() => new Animated.Value(0))
-  );
-  const progressAnims = progressAnimsRef.current;
+  // Animated values for crossfade and progress indicators
+  const imageOpacitiesRef = useRef<Animated.Value[]>([]);
+  const progressAnimsRef = useRef<Animated.Value[]>([]);
   const progressAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  // Don't capture arrays in closures; always read current arrays from refs when animating
+
+  // Re-inicializar Animated.Value arrays cada vez que cambie la lista de juegos
+  useEffect(() => {
+    imageOpacitiesRef.current = games.map((_, i) => new Animated.Value(i === 0 ? 1 : 0));
+    progressAnimsRef.current = games.map(() => new Animated.Value(0));
+    // reset index refs and display
+    currentIndexRef.current = 0;
+    nextIndexRef.current = games.length > 1 ? 1 : 0;
+    setDisplayIndex(0);
+  }, [games]);
+
+  // Safety sync-init: ensure arrays exist during first render (prevents undefined access
+  // when games are loaded asynchronously and the render happens before the effect runs).
+  if (imageOpacitiesRef.current.length !== games.length) {
+    imageOpacitiesRef.current = games.map((_, i) => new Animated.Value(i === 0 ? 1 : 0));
+  }
+  if (progressAnimsRef.current.length !== games.length) {
+    progressAnimsRef.current = games.map(() => new Animated.Value(0));
+  }
 
   // Refs para los parámetros
   const durationRef = useRef(duration);
@@ -47,93 +66,88 @@ export default function HeroSection({ games, duration = 1200, interval = 5000 }:
     intervalRef.current = interval;
   }, [duration, interval]);
 
-  // Crossfade automático - una sola vez, sin dependencias
+  // Crossfade automático - reinicia cuando cambie la lista de juegos
   useEffect(() => {
     if (!games || games.length < 2) return;
 
+    // eslint-disable-next-line no-console
+    console.log('[HeroSection] starting auto crossfade, count=', games.length);
+
     let isMounted = true;
-    let timeoutId: ReturnType<typeof setTimeout>;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const animate = () => {
       if (!isMounted) return;
 
-      // Precompute next index (solo ref, sin setState)
-      const preNext = (currentIndexRef.current + 1) % games.length;
-      if (nextIndexRef.current !== preNext) {
-        nextIndexRef.current = preNext;
+      const curIdx = currentIndexRef.current;
+      const nxtIdx = (curIdx + 1) % games.length;
+
+      const curAnim = imageOpacitiesRef.current[curIdx];
+      const nxtAnim = imageOpacitiesRef.current[nxtIdx];
+      if (!curAnim || !nxtAnim) {
+        console.warn('[HeroSection] animate: missing anim values', { curIdx, nxtIdx });
+        return;
       }
 
-      const curIdx = currentIndexRef.current;
-      const nxtIdx = nextIndexRef.current;
+      // Reset progress values
+      progressAnimsRef.current.forEach((p, i) => p.setValue(i <= curIdx ? 1 : 0));
 
-      // Animar crossfade
       Animated.parallel([
-        Animated.timing(imageOpacities[curIdx], {
+        Animated.timing(curAnim, {
           toValue: 0,
           duration: durationRef.current,
           easing: Easing.inOut(Easing.quad),
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
-        Animated.timing(imageOpacities[nxtIdx], {
+        Animated.timing(nxtAnim, {
           toValue: 1,
           duration: durationRef.current,
           easing: Easing.inOut(Easing.quad),
-          useNativeDriver: false,
+          useNativeDriver: true,
         }),
       ]).start(() => {
         if (!isMounted) return;
 
-        // Promote next to current (solo refs, sin setState para evitar re-render)
-        const newCurrent = nextIndexRef.current;
-        currentIndexRef.current = newCurrent;
+        currentIndexRef.current = nxtIdx;
+        nextIndexRef.current = (nxtIdx + 1) % games.length;
+        setDisplayIndex(nxtIdx);
 
-        // Prepare upcoming next
-        const newNext = (newCurrent + 1) % games.length;
-        nextIndexRef.current = newNext;
+        animateProgressBar(nxtIdx);
 
-        // Asegurar que la próxima imagen esté oculta
-        imageOpacities[newNext].setValue(0);
-
-        // Actualizar display para que muestre el contenido correcto
-        setDisplayIndex(newCurrent);
-
-        // Animar barra de progreso
-        animateProgressBar(newCurrent);
-
-        // Pause before next cycle
         timeoutId = setTimeout(animate, intervalRef.current);
       });
     };
 
-    // Animar la primera barra de progreso
+    // kick off
     animateProgressBar(0);
-
-    // Start after initial display
     timeoutId = setTimeout(animate, intervalRef.current);
 
     return () => {
       isMounted = false;
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
+      progressAnimRef.current?.stop?.();
     };
-  }, [games.length]);
+  }, [games]);
 
   const animateProgressBar = (index: number) => {
-    progressAnimRef.current?.stop();
+    const currentProgressAnims = progressAnimsRef.current;
+    if (!currentProgressAnims || !currentProgressAnims[index]) {
+      console.warn('[HeroSection] animateProgressBar: missing progress anim for index', index);
+      currentProgressAnims.forEach((p, i) => p.setValue(i < index ? 1 : 0));
+      return;
+    }
 
-    // Reset todas las barras
-    progressAnims.forEach((anim, i) => {
-      if (i < index) {
-        anim.setValue(1);
-      } else if (i > index) {
-        anim.setValue(0);
-      }
+    // reset others
+    currentProgressAnims.forEach((p, i) => {
+      if (i !== index) p.setValue(i < index ? 1 : 0);
     });
 
-    // Animar la barra actual
-    progressAnimRef.current = Animated.timing(progressAnims[index], {
+    // animate current progress with native driver using scaleX
+    progressAnimRef.current = Animated.timing(currentProgressAnims[index], {
       toValue: 1,
       duration: intervalRef.current,
-      useNativeDriver: false,
+      easing: Easing.linear,
+      useNativeDriver: true,
     });
 
     progressAnimRef.current.start();
@@ -143,40 +157,44 @@ export default function HeroSection({ games, duration = 1200, interval = 5000 }:
   const goToSlide = (index: number) => {
     if (index === currentIndexRef.current) return;
 
-    progressAnimRef.current?.stop();
+  // progressAnimRef reset
+  progressAnimRef.current = null;
 
-    // Resetear progreso
-    progressAnims.forEach((anim) => anim.setValue(0));
+  // Resetear progreso (set Animated.Value to 0)
+  progressAnimsRef.current.forEach((p) => p.setValue(0));
 
     const curIdx = currentIndexRef.current;
     const nxtIdx = index;
 
-    // Animar transición
+    // Defensive: ensure animated values exist
+    const curAnim = imageOpacitiesRef.current[curIdx];
+    const nxtAnim = imageOpacitiesRef.current[nxtIdx];
+    if (!curAnim || !nxtAnim) {
+      console.warn('[HeroSection] goToSlide: missing image opacity anim', { curIdx, nxtIdx });
+      currentIndexRef.current = nxtIdx;
+      nextIndexRef.current = games.length > 1 ? (nxtIdx + 1) % games.length : nxtIdx;
+      setDisplayIndex(nxtIdx);
+      animateProgressBar(nxtIdx);
+      return;
+    }
+
     Animated.parallel([
-      Animated.timing(imageOpacities[curIdx], {
+      Animated.timing(curAnim, {
         toValue: 0,
         duration: durationRef.current,
         easing: Easing.inOut(Easing.quad),
-        useNativeDriver: false,
+        useNativeDriver: true,
       }),
-      Animated.timing(imageOpacities[nxtIdx], {
+      Animated.timing(nxtAnim, {
         toValue: 1,
         duration: durationRef.current,
         easing: Easing.inOut(Easing.quad),
-        useNativeDriver: false,
+        useNativeDriver: true,
       }),
     ]).start(() => {
-      // Promote
       currentIndexRef.current = nxtIdx;
       nextIndexRef.current = (nxtIdx + 1) % games.length;
-
-      // Asegurar que la próxima imagen esté oculta
-      imageOpacities[nextIndexRef.current].setValue(0);
-
-      // Actualizar display
       setDisplayIndex(nxtIdx);
-
-      // Animar barra de progreso
       animateProgressBar(nxtIdx);
     });
   };
@@ -193,33 +211,28 @@ export default function HeroSection({ games, duration = 1200, interval = 5000 }:
     goToSlide(prev);
   };
 
-  // Gesto de deslizamiento
-  const panGesture = Gesture.Pan()
-    .onEnd((event) => {
-      const threshold = 50;
-
-      if (event.translationX > threshold) {
-        goToPrevious();
-      } else if (event.translationX < -threshold) {
-        goToNext();
-      }
-    });
+  // NOTE: Gestures temporarily disabled for debugging. If tests show error disappears,
+  // we will re-enable and bisect gesture configuration.
 
   const currentGame = games[displayIndex];
 
   return (
-    <GestureDetector gesture={panGesture}>
-      <View style={styles.container}>
-        {/* Background Images with Crossfade */}
+    <View style={styles.container}>
+        {/* Background Image (single, no Animated) - simplified for debugging */}
         <View style={styles.imageContainer}>
-          {games.map((game, i) => (
-            <Animated.Image
-              key={i}
-              source={{ uri: game.image }}
-              style={[styles.backgroundImage, { opacity: imageOpacities[i] }]}
-              resizeMode="cover"
-            />
-          ))}
+          {games.map((game, i) => {
+            const fallback = require('../../assets/loginImages/img1.jpg');
+            const source = game?.image ? { uri: game.image } : fallback;
+            const opacity = imageOpacitiesRef.current[i] || new Animated.Value(0);
+            return (
+              <Animated.View
+                key={i}
+                style={[styles.backgroundImage, { opacity, backgroundColor: '#000' }]}
+              >
+                <Image source={source} style={styles.backgroundImage} resizeMode="cover" />
+              </Animated.View>
+            );
+          })}
         </View>
 
         {/* Gradient Overlay */}
@@ -229,17 +242,23 @@ export default function HeroSection({ games, duration = 1200, interval = 5000 }:
           style={styles.gradientOverlay}
         />
 
+        {/* Global dark overlay to improve text contrast over bright images */}
+        <View style={styles.imageOverlay} pointerEvents="none" />
+
         {/* Content */}
         <View style={styles.content}>
           <Text style={styles.title}>{currentGame.title}</Text>
 
-          {/* Rating Stars */}
+          {/* Rating Stars (round rating to nearest integer, cap 0-5) */}
           <View style={styles.ratingContainer}>
-            {[...Array(5)].map((_, index) => (
-              <Text key={index} style={styles.star}>
-                {index < currentGame.rating ? '⭐' : '☆'}
-              </Text>
-            ))}
+            {(() => {
+              const stars = Math.max(0, Math.min(5, Math.round(currentGame.rating || 0)));
+              return [...Array(5)].map((_, index) => (
+                <Text key={index} style={styles.star}>
+                  {index < stars ? '⭐' : '☆'}
+                </Text>
+              ));
+            })()}
           </View>
 
           <Text style={styles.description} numberOfLines={3}>
@@ -250,33 +269,52 @@ export default function HeroSection({ games, duration = 1200, interval = 5000 }:
 
           {/* Progress Indicators */}
           <View style={styles.indicators}>
-            {games.map((_, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => goToSlide(index)}
-                activeOpacity={0.7}
-                style={styles.indicatorTouchable}
-              >
-                <View style={styles.indicatorBackground}>
-                  <Animated.View
-                    style={[
-                      styles.indicatorProgress,
-                      {
-                        width: progressAnims[index].interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0%', '100%'],
-                        }),
-                        backgroundColor: index === displayIndex ? '#D21718' : '#D9D9D9',
-                      },
-                    ]}
-                  />
-                </View>
-              </TouchableOpacity>
-            ))}
+            {games.map((_, index) => {
+              // Render static indicators (no Animated.interpolate) to isolate runtime errors
+              const filled = index < displayIndex;
+              const active = index === displayIndex;
+              return (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => goToSlide(index)}
+                  activeOpacity={0.7}
+                  style={styles.indicatorTouchable}
+                >
+                  <View style={styles.indicatorBackground}>
+                    {progressAnimsRef.current[index] ? (
+                      <Animated.View
+                        style={[
+                          styles.indicatorProgress,
+                          {
+                            transform: [
+                              {
+                                scaleX: progressAnimsRef.current[index],
+                              },
+                            ],
+                            backgroundColor: active ? '#D21718' : '#D9D9D9',
+                            alignSelf: 'flex-start',
+                            width: '100%',
+                          },
+                        ]}
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.indicatorProgress,
+                          {
+                            width: filled ? '100%' : '0%',
+                            backgroundColor: active ? '#D21718' : '#D9D9D9',
+                          },
+                        ]}
+                      />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
       </View>
-    </GestureDetector>
   );
 }
 
@@ -318,8 +356,11 @@ const styles = StyleSheet.create({
   title: {
     color: '#FFFFFF',
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: '700',
     marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -332,10 +373,13 @@ const styles = StyleSheet.create({
   description: {
     color: '#FFFFFF',
     fontSize: 10,
-    fontWeight: '300',
+    fontWeight: '500',
     lineHeight: 14,
     marginBottom: 8,
     maxWidth: 344,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   genre: {
     color: '#FFFFFF',
@@ -362,5 +406,14 @@ const styles = StyleSheet.create({
   indicatorProgress: {
     height: '100%',
     borderRadius: 34,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 324,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    zIndex: 2,
   },
 });
