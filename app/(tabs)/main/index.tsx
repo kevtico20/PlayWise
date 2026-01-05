@@ -7,6 +7,7 @@ import ErrorBoundary from '../../../components/common/ErrorBoundary';
 import ScreenSuspense from '../../../components/common/ScreenSuspense';
 import SectionSkeleton from '../../../components/common/SectionSkeleton';
 import MainHeader from '../../../components/main/MainHeader';
+import MainFooter from '../../../components/common/MainFooter';
 import { APP_COLORS } from '../../../constants/colors';
 import GAME_CATEGORIES from '../../../constants/gameCategories';
 import { getGamesByGenre, RawgGameShort, getTopRatedGames } from '../../../services/rawgService';
@@ -257,6 +258,10 @@ export default function MainScreen() {
                 </View>
               )
             ))}
+            {/* Footer at the end of the content */}
+            <View style={{ paddingTop: 12 }}>
+              <MainFooter />
+            </View>
           </ScrollView>
           </ScreenSuspense>
         </SafeAreaView>
