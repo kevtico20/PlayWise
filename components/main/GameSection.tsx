@@ -36,6 +36,7 @@ export default function GameSection({ title, games, textColor = '#FFFFFF', onLoa
         {games.map((game) => (
           <GameCard
             key={game.id}
+            id={game.id}
             image={game.image}
             title={game.title}
             genre={game.genre}
