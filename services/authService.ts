@@ -3,6 +3,7 @@
  * Servicio para operaciones de autenticación con el backend
  */
 
+import { decode as base64Decode } from "base-64";
 import * as Application from "expo-application";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
@@ -47,6 +48,7 @@ export interface LoginResponse {
   token_type?: string;
   otp_required?: boolean;
   message?: string;
+  user?: User;
 }
 
 export interface OTPVerifyRequest {
@@ -107,6 +109,66 @@ function getDeviceType(): string {
   if (Platform.OS === "android") return "android";
   if (Platform.OS === "ios") return "ios";
   return "web";
+}
+
+/**
+ * Decodificar JWT token
+ */
+function base64UrlToUtf8(input: string): string {
+  // Convert base64url -> base64
+  let base64 = input.replace(/-/g, "+").replace(/_/g, "/");
+  // Pad to multiple of 4
+  const pad = base64.length % 4;
+  if (pad) base64 += "=".repeat(4 - pad);
+  // Decode to ASCII/UTF-8 string
+  return base64Decode(base64);
+}
+
+function decodeToken(token: string): any {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+    const payloadJson = base64UrlToUtf8(parts[1]);
+    const decoded = JSON.parse(payloadJson);
+    return decoded;
+  } catch (error) {
+    console.error("Error decoding token:", error);
+    return null;
+  }
+}
+
+/**
+ * Extraer datos básicos del usuario desde el access token si el backend
+ * incluye los claims (p.ej. username, email, sub, preferred_username).
+ * Devuelve un objeto parcial de User con la información disponible.
+ */
+export function extractUserFromToken(token: string): Partial<User> | null {
+  const claims = decodeToken(token);
+  if (!claims || typeof claims !== "object") return null;
+
+  const candidateUsername =
+    claims.username || claims.preferred_username || claims.name || null;
+  const candidateEmail = claims.email || null;
+  const subject = claims.sub || null;
+
+  const username =
+    (typeof candidateUsername === "string" && candidateUsername.trim()) ||
+    (typeof subject === "string" && subject.includes("@")
+      ? subject.split("@")[0]
+      : typeof subject === "string"
+      ? subject
+      : null);
+
+  const email =
+    (typeof candidateEmail === "string" && candidateEmail.trim()) ||
+    (typeof subject === "string" && subject.includes("@") ? subject : null);
+
+  if (!username && !email) return null;
+
+  return {
+    username: username || (email ? email.split("@")[0] : ""),
+    email: email || undefined,
+  } as Partial<User>;
 }
 
 // ==================== AUTH SERVICE ====================
@@ -276,6 +338,24 @@ class AuthService {
   async getTrustedDevices(accessToken: string): Promise<TrustedDevice[]> {
     try {
       const response = await fetchAPI<TrustedDevice[]>("/auth/devices", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      return response;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Obtener datos del usuario actual (requiere autenticación)
+   */
+  async getCurrentUser(accessToken: string): Promise<User> {
+    try {
+      const response = await fetchAPI<User>("/users/me", {
         method: "GET",
         headers: {
           Authorization: `Bearer ${accessToken}`,

@@ -1,16 +1,16 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, View, Text } from 'react-native';
-import GameSection from '../../../components/main/GameSection';
-import HeroSection from '../../../components/main/HeroSection';
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import ErrorBoundary from '../../../components/common/ErrorBoundary';
+import MainFooter from '../../../components/common/MainFooter';
 import ScreenSuspense from '../../../components/common/ScreenSuspense';
 import SectionSkeleton from '../../../components/common/SectionSkeleton';
+import GameSection from '../../../components/main/GameSection';
+import HeroSection from '../../../components/main/HeroSection';
 import MainHeader from '../../../components/main/MainHeader';
-import MainFooter from '../../../components/common/MainFooter';
 import { APP_COLORS } from '../../../constants/colors';
 import GAME_CATEGORIES from '../../../constants/gameCategories';
-import { getGamesByGenre, RawgGameShort, getTopRatedGames } from '../../../services/rawgService';
+import { getGamesByGenre, getTopRatedGames, RawgGameShort } from '../../../services/rawgService';
 
 // Hero images will be loaded dynamically from RAWG (top-rated games)
 
@@ -232,7 +232,7 @@ export default function MainScreen() {
                   <HeroSection games={heroGames} />
                 </ErrorBoundary>
               )}
-              <MainHeader userName="K" />
+              <MainHeader />
             </View>
 
             {GAME_CATEGORIES.map((cat) => (

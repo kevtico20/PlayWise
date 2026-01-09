@@ -1,30 +1,43 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCurrentUser } from '../../hooks/use-current-user';
+import ProfileMenu from './ProfileMenu';
 
 interface MainHeaderProps {
-  userName?: string;
   onSearchPress?: () => void;
-  onProfilePress?: () => void;
 }
 
-export default function MainHeader({ userName = 'K', onSearchPress, onProfilePress }: MainHeaderProps) {
+export default function MainHeader({ onSearchPress }: MainHeaderProps) {
+  const { getUserInitial } = useCurrentUser();
+  const [menuVisible, setMenuVisible] = useState(false);
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.logo}>Logo</Text>
-      
-      <View style={styles.rightSection}>
-        <TouchableOpacity onPress={onSearchPress} style={styles.iconButton}>
-          <Ionicons name="search" size={23} color="#FFFFFF" />
-        </TouchableOpacity>
+    <>
+      <View style={styles.container}>
+        <Text style={styles.logo}>Logo</Text>
         
-        <TouchableOpacity onPress={onProfilePress} style={styles.profileButton}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{userName}</Text>
-          </View>
-        </TouchableOpacity>
+        <View style={styles.rightSection}>
+          <TouchableOpacity onPress={onSearchPress} style={styles.iconButton}>
+            <Ionicons name="search" size={23} color="#FFFFFF" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            onPress={() => setMenuVisible(true)}
+            style={styles.profileButton}
+          >
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{getUserInitial()}</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+
+      <ProfileMenu 
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+      />
+    </>
   );
 }
 

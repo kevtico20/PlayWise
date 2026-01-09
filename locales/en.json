@@ -25,6 +25,8 @@
   "auth": {
     "login": "Login",
     "logout": "Logout",
+    "logoutConfirm": "Are you sure you want to logout?",
+    "logoutError": "Error logging out",
     "register": "Register",
     "email": "Email",
     "password": "Password",
@@ -102,5 +104,10 @@
     "privacy": "Privacy",
     "about": "About",
     "version": "Version"
+  },
+  "menu": {
+    "wishlist": "Wishlist",
+    "friends": "Friends",
+    "accountSettings": "Account Settings"
   }
 }

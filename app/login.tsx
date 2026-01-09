@@ -16,7 +16,7 @@ import LoginForm from "../components/login/LoginForm";
 import LoginHeader from "../components/login/LoginHeader";
 import LoginTitle from "../components/login/LoginTitle";
 import { useTranslation } from "../hooks/use-translation";
-import authService from "../services/authService";
+import authService, { extractUserFromToken } from "../services/authService";
 import storageService from "../services/storageService";
 
 export default function LoginScreen() {
@@ -57,20 +57,60 @@ export default function LoginScreen() {
 
     try {
       const response = await authService.login(email.trim(), password);
+      console.log("Login response:", JSON.stringify(response, null, 2));
 
-      // Si requiere OTP, navegar a la pantalla de verificación
+      // Si requiere OTP, guardar datos temporales y navegar a la pantalla de verificación
       if (response.otp_required) {
+        // Guardar email temporalmente para usarlo después en OTP
+        await storageService.saveUserData({
+          email: email.trim(),
+          username: email.trim().split("@")[0],
+        });
         router.push("/otp-verification");
         return;
       }
 
-      // Si no requiere OTP, guardar tokens y continuar
+      // Si no requiere OTP, guardar tokens y datos del usuario, luego continuar
       if (response.access_token && response.refresh_token) {
         await storageService.saveTokens(
           response.access_token,
           response.refresh_token
         );
-        router.replace("/(tabs)/main");
+        
+        // Guardar datos del usuario si están disponibles en la respuesta
+        if (response.user) {
+          console.log("Saving user from response:", response.user);
+          await storageService.saveUserData(response.user);
+        } else {
+          // Si no vienen en la respuesta, obtenerlos del endpoint /users/me
+          try {
+            console.log("Fetching user data from /users/me");
+            const userData = await authService.getCurrentUser(response.access_token);
+            console.log("User data from /users/me:", userData);
+            await storageService.saveUserData(userData);
+          } catch (error) {
+            console.warn("Could not fetch user data:", error);
+            // Fallback 1: intentar extraer datos desde el token
+            const extracted = extractUserFromToken(response.access_token);
+            if (extracted) {
+              console.log("Using user data extracted from token:", extracted);
+              await storageService.saveUserData({
+                email: extracted.email || email.trim(),
+                username:
+                  extracted.username || (email.trim().split("@")[0] || ""),
+              });
+            } else {
+              // Fallback 2: guardar usuario mínimo con el email
+              await storageService.saveUserData({
+                email: email.trim(),
+                username: email.trim().split("@")[0],
+              });
+            }
+          }
+        }
+        
+        // Navegar al tab 'main' (los grupos '(tabs)' no forman parte de la ruta)
+        router.replace("/main");
       }
     } catch (error: any) {
       Alert.alert("Error", error.message || t("auth.loginError"));
