@@ -115,9 +115,6 @@ export default function LoginHeader() {
   const { width } = useWindowDimensions();
   const [layout, setLayout] = useState({ width: 0, height: 0 });
 
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [nextIndex, setNextIndex] = useState(1);
-
   // Index refs to avoid stale closures in animation callbacks
   const currentIndexRef = useRef(0);
   const nextIndexRef = useRef(1);
@@ -218,7 +215,7 @@ export default function LoginHeader() {
       isMounted = false;
       clearTimeout(timeoutId);
     };
-  }, []);
+  });
 
   return (
     <View

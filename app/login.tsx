@@ -1,28 +1,23 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Text,
-  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
 
 import GradientBackground from "../components/GradientBackground";
 import DecorativeTriangles from "../components/login/DecorativeTriangles";
-import LoginButton from "../components/login/LoginButton";
+import LoginForm from "../components/login/LoginForm";
 import LoginHeader from "../components/login/LoginHeader";
 import LoginTitle from "../components/login/LoginTitle";
-
-import AnimatedHintInput from "../components/common/AnimatedHintInput";
-import AnimatedHintPasswordInput from "../components/common/AnimatedHintPasswordInput";
-
 import { useTranslation } from "../hooks/use-translation";
+import authService from "../services/authService";
+import storageService from "../services/storageService";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -55,28 +50,47 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    // Validaciones comentadas para pruebas
-    // if (!validateForm()) return;
+    if (!validateForm()) return;
 
     setLoading(true);
     Keyboard.dismiss();
 
     try {
-      // Comentado temporalmente para pruebas - acceso directo
-      // const response = await authService.login(email.trim(), password);
+      const response = await authService.login(email.trim(), password);
 
-      // await storageService.saveTokens(
-      //   response.access_token,
-      //   response.refresh_token
-      // );
+      // Si requiere OTP, navegar a la pantalla de verificación
+      if (response.otp_required) {
+        router.push("/otp-verification");
+        return;
+      }
 
-      // Alert.alert("Éxito", t("auth.loginSuccess"));
-      router.replace("/(tabs)/main");
+      // Si no requiere OTP, guardar tokens y continuar
+      if (response.access_token && response.refresh_token) {
+        await storageService.saveTokens(
+          response.access_token,
+          response.refresh_token
+        );
+        router.replace("/(tabs)/main");
+      }
     } catch (error: any) {
       Alert.alert("Error", error.message || t("auth.loginError"));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    setErrors({ ...errors, email: "" });
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    setErrors({ ...errors, password: "" });
+  };
+
+  const handleNavigateToRegister = () => {
+    router.push("/register");
   };
 
   return (
@@ -93,59 +107,20 @@ export default function LoginScreen() {
           >
             <LoginHeader />
 
-            <View className="px-8 pt-8">
+            <View className="px-8 pt-4">
               <LoginTitle />
-
-              <View className="mt-6 mb-4">
-                <AnimatedHintInput
-                  label={t("auth.userOrEmail")}
-                  value={email}
-                  onChangeText={(text) => {
-                    setEmail(text);
-                    setErrors({ ...errors, email: "" });
-                  }}
-                  keyboardType="email-address"
-                  editable={!loading}
-                  error={errors.email}
-                />
-
-                <AnimatedHintPasswordInput
-                  label={t("auth.password")}
-                  value={password}
-                  onChangeText={(text) => {
-                    setPassword(text);
-                    setErrors({ ...errors, password: "" });
-                  }}
-                  editable={!loading}
-                  error={errors.password}
-                />
-              </View>
-
-              {loading && (
-                <View className="mb-4">
-                  <ActivityIndicator size="large" color="#ffffff" />
-                </View>
-              )}
-
-              <TouchableOpacity
-                className="self-center mb-8"
-                onPress={() => router.push("/register")}
-              >
-                <View className="flex-row items-center py-2">
-                  <View className="w-12 h-0.5 bg-white/60 mr-3" />
-                  <Text className="text-white font-bold">
-                    {t("auth.createAccount")}
-                  </Text>
-                  <View className="w-12 h-0.5 bg-white/60 ml-3" />
-                </View>
-              </TouchableOpacity>
-
-              <LoginButton
-                onPress={handleLogin}
-                title={loading ? t("common.loading") : t("auth.letsPlay")}
-                disabled={loading}
-              />
             </View>
+
+            <LoginForm
+              email={email}
+              password={password}
+              loading={loading}
+              errors={errors}
+              onEmailChange={handleEmailChange}
+              onPasswordChange={handlePasswordChange}
+              onLogin={handleLogin}
+              onNavigateToRegister={handleNavigateToRegister}
+            />
 
             <View className="absolute bottom-0 left-0 right-0 pointer-events-none">
               <DecorativeTriangles />
