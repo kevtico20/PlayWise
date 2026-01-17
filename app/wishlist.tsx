@@ -2,13 +2,37 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { APP_COLORS } from '../constants/colors';
 import { useTranslation } from '../hooks/use-translation';
+import storageService from '../services/storageService';
+import wishlistService from '../services/wishlistService';
 
 export default function WishlistScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const [items, setItems] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const authed = await storageService.isAuthenticated();
+        if (!authed) {
+          setItems([]);
+          return;
+        }
+        const list = await wishlistService.list();
+        if (mounted) setItems(Array.isArray(list) ? list : []);
+      } catch {
+        if (mounted) setItems([]);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   return (
     <LinearGradient
@@ -25,9 +49,35 @@ export default function WishlistScreen() {
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.placeholder}>
-            {t('games.wishlist')} - Coming Soon
-          </Text>
+          {loading ? (
+            <ActivityIndicator size="large" color="#FFFFFF" />
+          ) : items.length === 0 ? (
+            <Text style={styles.placeholder}>{t('games.wishlist')} vacía</Text>
+          ) : (
+            <FlatList
+              data={items}
+              keyExtractor={(item) => String(item.id)}
+              contentContainerStyle={styles.list}
+              renderItem={({ item }) => {
+                const cover = item.game_cover || item.game?.cover_image || null;
+                const name = item.game_name || item.game?.name || t('common.unknown');
+                const genre = item.game_genre || item.game?.genre || '';
+                return (
+                  <View style={styles.row}>
+                    {cover ? (
+                      <Image source={{ uri: cover }} style={styles.rowImage} />
+                    ) : (
+                      <View style={[styles.rowImage, styles.rowImagePlaceholder]} />
+                    )}
+                    <View style={styles.rowInfo}>
+                      <Text style={styles.rowTitle} numberOfLines={1}>{name}</Text>
+                      {!!genre && <Text style={styles.rowSubtitle} numberOfLines={1}>{genre}</Text>}
+                    </View>
+                  </View>
+                );
+              }}
+            />
+          )}
         </View>
       </SafeAreaView>
     </LinearGradient>
