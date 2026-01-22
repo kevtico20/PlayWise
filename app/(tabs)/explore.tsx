@@ -1,98 +1,134 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Heart } from 'lucide-react-native';
-import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Image, PanResponder, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import GradientBackground from '../../components/GradientBackground';
-import CommentSection from '../../components/gameDetails/CommentSection';
-import GameVariantAccordion from '../../components/gameDetails/GameVariantAccordion';
-import MainHeader from '../../components/main/MainHeader';
-import { CheapSharkDeal, searchDealsBySteamAppID, searchDealsByTitle, searchDealsByTitleExact } from '../../services/cheapSharkService';
-import { getGameDetails, RawgGameFull } from '../../services/rawgService';
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Heart } from "lucide-react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  PanResponder,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import GradientBackground from "../../components/GradientBackground";
+import CommentSection from "../../components/gameDetails/CommentSection";
+import GameVariantAccordion from "../../components/gameDetails/GameVariantAccordion";
+import MainHeader from "../../components/main/MainHeader";
+import {
+  CheapSharkDeal,
+  searchDealsBySteamAppID,
+  searchDealsByTitle,
+  searchDealsByTitleExact,
+} from "../../services/cheapSharkService";
+import { getGameDetails, RawgGameFull } from "../../services/rawgService";
+import wishlistService from "../../services/wishlistService";
 
 // Mock data para comentarios
 const MOCK_COMMENTS = [
-  { id: '1', userName: 'Heart_beat', text: 'An artist in every sense! Absolutely love his work.', likes: 285, timeAgo: '10min ago' },
-  { id: '2', userName: 'Olivia55_12', text: '@Heart_beat He is a legend. One of my favorites!', likes: 63, timeAgo: '21min ago' },
-  { id: '3', userName: 'Receptionist77', text: '@Olivia55_12 Each song in this album is a hit', likes: 12, timeAgo: '1h ago' },
+  {
+    id: "1",
+    userName: "Heart_beat",
+    text: "An artist in every sense! Absolutely love his work.",
+    likes: 285,
+    timeAgo: "10min ago",
+  },
+  {
+    id: "2",
+    userName: "Olivia55_12",
+    text: "@Heart_beat He is a legend. One of my favorites!",
+    likes: 63,
+    timeAgo: "21min ago",
+  },
+  {
+    id: "3",
+    userName: "Receptionist77",
+    text: "@Olivia55_12 Each song in this album is a hit",
+    likes: 12,
+    timeAgo: "1h ago",
+  },
 ];
 
 // Store logos URLs
 const STORE_LOGOS: { [key: string]: { uri: string } } = {
-  'unknown': { uri: 'https://cdn-icons-png.flaticon.com/512/2354/2354573.png' },
-  '1': { uri: 'https://www.cheapshark.com/img/stores/logos/0.png' },
-  '2': { uri: 'https://www.cheapshark.com/img/stores/logos/1.png' },
-  '3': { uri: 'https://www.cheapshark.com/img/stores/logos/2.png' },
-  '4': { uri: 'https://www.cheapshark.com/img/stores/logos/3.png' },
-  '5': { uri: 'https://www.cheapshark.com/img/stores/logos/4.png' },
-  '6': { uri: 'https://www.cheapshark.com/img/stores/logos/5.png' },
-  '7': { uri: 'https://www.cheapshark.com/img/stores/logos/6.png' },
-  '8': { uri: 'https://www.cheapshark.com/img/stores/logos/7.png' },
-  '9': { uri: 'https://www.cheapshark.com/img/stores/logos/8.png' },
-  '10': { uri: 'https://www.cheapshark.com/img/stores/logos/9.png' },
-  '11': { uri: 'https://www.cheapshark.com/img/stores/logos/10.png' },
-  '12': { uri: 'https://www.cheapshark.com/img/stores/logos/11.png' },
-  '13': { uri: 'https://www.cheapshark.com/img/stores/logos/12.png' },
-  '14': { uri: 'https://www.cheapshark.com/img/stores/logos/13.png' },
-  '15': { uri: 'https://www.cheapshark.com/img/stores/logos/14.png' },
-  '16': { uri: 'https://www.cheapshark.com/img/stores/logos/15.png' },
-  '17': { uri: 'https://www.cheapshark.com/img/stores/logos/16.png' },
-  '18': { uri: 'https://www.cheapshark.com/img/stores/logos/17.png' },
-  '19': { uri: 'https://www.cheapshark.com/img/stores/logos/18.png' },
-  '20': { uri: 'https://www.cheapshark.com/img/stores/logos/19.png' },
-  '21': { uri: 'https://www.cheapshark.com/img/stores/logos/20.png' },
-  '22': { uri: 'https://www.cheapshark.com/img/stores/logos/21.png' },
-  '24': { uri: 'https://www.cheapshark.com/img/stores/logos/23.png' },
-  '25': { uri: 'https://www.cheapshark.com/img/stores/logos/24.png' },
-  '26': { uri: 'https://www.cheapshark.com/img/stores/logos/25.png' },
-  '27': { uri: 'https://www.cheapshark.com/img/stores/logos/26.png' },
-  '28': { uri: 'https://www.cheapshark.com/img/stores/logos/27.png' },
+  unknown: { uri: "https://cdn-icons-png.flaticon.com/512/2354/2354573.png" },
+  "1": { uri: "https://www.cheapshark.com/img/stores/logos/0.png" },
+  "2": { uri: "https://www.cheapshark.com/img/stores/logos/1.png" },
+  "3": { uri: "https://www.cheapshark.com/img/stores/logos/2.png" },
+  "4": { uri: "https://www.cheapshark.com/img/stores/logos/3.png" },
+  "5": { uri: "https://www.cheapshark.com/img/stores/logos/4.png" },
+  "6": { uri: "https://www.cheapshark.com/img/stores/logos/5.png" },
+  "7": { uri: "https://www.cheapshark.com/img/stores/logos/6.png" },
+  "8": { uri: "https://www.cheapshark.com/img/stores/logos/7.png" },
+  "9": { uri: "https://www.cheapshark.com/img/stores/logos/8.png" },
+  "10": { uri: "https://www.cheapshark.com/img/stores/logos/9.png" },
+  "11": { uri: "https://www.cheapshark.com/img/stores/logos/10.png" },
+  "12": { uri: "https://www.cheapshark.com/img/stores/logos/11.png" },
+  "13": { uri: "https://www.cheapshark.com/img/stores/logos/12.png" },
+  "14": { uri: "https://www.cheapshark.com/img/stores/logos/13.png" },
+  "15": { uri: "https://www.cheapshark.com/img/stores/logos/14.png" },
+  "16": { uri: "https://www.cheapshark.com/img/stores/logos/15.png" },
+  "17": { uri: "https://www.cheapshark.com/img/stores/logos/16.png" },
+  "18": { uri: "https://www.cheapshark.com/img/stores/logos/17.png" },
+  "19": { uri: "https://www.cheapshark.com/img/stores/logos/18.png" },
+  "20": { uri: "https://www.cheapshark.com/img/stores/logos/19.png" },
+  "21": { uri: "https://www.cheapshark.com/img/stores/logos/20.png" },
+  "22": { uri: "https://www.cheapshark.com/img/stores/logos/21.png" },
+  "24": { uri: "https://www.cheapshark.com/img/stores/logos/23.png" },
+  "25": { uri: "https://www.cheapshark.com/img/stores/logos/24.png" },
+  "26": { uri: "https://www.cheapshark.com/img/stores/logos/25.png" },
+  "27": { uri: "https://www.cheapshark.com/img/stores/logos/26.png" },
+  "28": { uri: "https://www.cheapshark.com/img/stores/logos/27.png" },
 };
 
 const STORE_NAMES: { [key: string]: string } = {
-  '1': 'Steam',
-  '2': 'GamersGate',
-  '3': 'GreenManGaming',
-  '4': 'Amazon',
-  '5': 'Newegg',
-  '6': 'Razer Game Store',
-  '7': 'GOG',
-  '8': 'Origin',
-  '9': 'IndieGameStand',
-  '10': 'Desura',
-  '11': 'Humble Store',
-  '12': 'All Deals',
-  '13': 'Ubisoft Connect',
-  '14': 'Direct2Drive',
-  '15': 'Fanatical',
-  '16': 'Gamesload',
-  '17': 'Voidu',
-  '18': 'GameBillet',
-  '19': 'Gamesplanet',
-  '20': '2Game',
-  '21': 'GMG',
-  '22': 'WinGameStore',
-  '24': 'GamesRocket',
-  '25': 'Epic Games',
-  '26': 'Blizzard Shop',
-  '27': 'Nintendo',
-  '28': 'Meta Quest',
+  "1": "Steam",
+  "2": "GamersGate",
+  "3": "GreenManGaming",
+  "4": "Amazon",
+  "5": "Newegg",
+  "6": "Razer Game Store",
+  "7": "GOG",
+  "8": "Origin",
+  "9": "IndieGameStand",
+  "10": "Desura",
+  "11": "Humble Store",
+  "12": "All Deals",
+  "13": "Ubisoft Connect",
+  "14": "Direct2Drive",
+  "15": "Fanatical",
+  "16": "Gamesload",
+  "17": "Voidu",
+  "18": "GameBillet",
+  "19": "Gamesplanet",
+  "20": "2Game",
+  "21": "GMG",
+  "22": "WinGameStore",
+  "24": "GamesRocket",
+  "25": "Epic Games",
+  "26": "Blizzard Shop",
+  "27": "Nintendo",
+  "28": "Meta Quest",
 };
 
 export default function ExploreScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
 
-  const gameId = (params.id as string) || '3328';
-  const gameTitle = (params.title as string) || 'Elden Ring';
-  const gameImage = (params.image as string) || 'https://image.api.playstation.com/vulcan/ap/rnd/202110/2000/phvVT0qZfcRms5qDAk0SI3CM.png';
-  const gameGenre = (params.genre as string) || 'RPG';
-  const gameRating = parseFloat((params.rating as string) || '4.8');
+  const gameId = (params.id as string) || "3328";
+  const gameTitle = (params.title as string) || "Elden Ring";
+  const gameImage =
+    (params.image as string) ||
+    "https://image.api.playstation.com/vulcan/ap/rnd/202110/2000/phvVT0qZfcRms5qDAk0SI3CM.png";
+  const gameGenre = (params.genre as string) || "RPG";
+  const gameRating = parseFloat((params.rating as string) || "4.8");
 
   const [deals, setDeals] = useState<CheapSharkDeal[]>([]);
   const [loading, setLoading] = useState(true);
   const [comments, setComments] = useState(MOCK_COMMENTS);
   const [gameDetails, setGameDetails] = useState<RawgGameFull | null>(null);
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState("");
   const [detailedRating, setDetailedRating] = useState<number>(gameRating);
   const [descriptionLevel, setDescriptionLevel] = useState(0); // 0=200, 1=400, 2=800, 3=full
   const [genres, setGenres] = useState<string[]>([]);
@@ -107,10 +143,10 @@ export default function ExploreScreen() {
       onPanResponderRelease: (_, gestureState) => {
         // If swipe right more than 100px, navigate back
         if (gestureState.dx > 100) {
-          router.push('/main');
+          router.push("/main");
         }
       },
-    })
+    }),
   ).current;
 
   useEffect(() => {
@@ -121,10 +157,10 @@ export default function ExploreScreen() {
     try {
       setLoading(true);
 
-      if (gameId && gameId !== '3328') {
+      if (gameId && gameId !== "3328") {
         const details = await getGameDetails(gameId);
         setGameDetails(details);
-        setDescription(details.description_raw || details.description || '');
+        setDescription(details.description_raw || details.description || "");
         if (details.rating) {
           setDetailedRating(details.rating);
         }
@@ -141,7 +177,7 @@ export default function ExploreScreen() {
         try {
           const stores = details?.stores || [];
           for (const s of stores) {
-            const url: string = s?.url || s?.store?.url || '';
+            const url: string = s?.url || s?.store?.url || "";
             const m = url.match(/store\.steampowered\.com\/app\/(\d+)/i);
             if (m && m[1]) return m[1];
           }
@@ -176,17 +212,27 @@ export default function ExploreScreen() {
       const yearMatch = gameTitle.match(/\((\d{4})\)/);
       if (yearMatch) {
         const year = yearMatch[1];
-        const filtered = results.filter((d) => (d.title || '').includes(`(${year})`));
+        const filtered = results.filter((d) =>
+          (d.title || "").includes(`(${year})`),
+        );
         if (filtered.length > 0) {
           results = filtered;
         }
       }
 
       // Normalize title filtering: prefer deals whose title starts with the base title (without year)
-      const baseTitle = gameTitle.replace(/\(\d{4}\)/, '').trim().toLowerCase();
-      const normalize = (t: string) => t.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+      const baseTitle = gameTitle
+        .replace(/\(\d{4}\)/, "")
+        .trim()
+        .toLowerCase();
+      const normalize = (t: string) =>
+        t
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
       const preferred = results.filter((d) => {
-        const dt = normalize(d.title || '');
+        const dt = normalize(d.title || "");
         const bt = normalize(baseTitle);
         return dt.startsWith(bt);
       });
@@ -196,36 +242,46 @@ export default function ExploreScreen() {
 
       setDeals(results);
     } catch (error) {
-      console.error('Error loading game data:', error);
+      console.error("Error loading game data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const dealsByTitle = deals.reduce((acc, deal) => {
-    const title = deal.title || gameTitle;
-    const storeId = deal.storeID;
+  const dealsByTitle = deals.reduce(
+    (acc, deal) => {
+      const title = deal.title || gameTitle;
+      const storeId = deal.storeID;
 
-    // Skip deals without a store ID to avoid duplicating Steam as fallback
-    if (!storeId) return acc;
+      // Skip deals without a store ID to avoid duplicating Steam as fallback
+      if (!storeId) return acc;
 
-    if (!acc[title]) {
-      acc[title] = {};
-    }
+      if (!acc[title]) {
+        acc[title] = {};
+      }
 
-    const currentPrice = parseFloat(deal.salePrice || deal.normalPrice || '999');
-    const existingPrice = acc[title][storeId]
-      ? parseFloat(acc[title][storeId].salePrice || acc[title][storeId].normalPrice || '999')
-      : Number.POSITIVE_INFINITY;
+      const currentPrice = parseFloat(
+        deal.salePrice || deal.normalPrice || "999",
+      );
+      const existingPrice = acc[title][storeId]
+        ? parseFloat(
+            acc[title][storeId].salePrice ||
+              acc[title][storeId].normalPrice ||
+              "999",
+          )
+        : Number.POSITIVE_INFINITY;
 
-    if (!acc[title][storeId] || currentPrice < existingPrice) {
-      acc[title][storeId] = deal;
-    }
-    return acc;
-  }, {} as Record<string, Record<string, CheapSharkDeal>>);
+      if (!acc[title][storeId] || currentPrice < existingPrice) {
+        acc[title][storeId] = deal;
+      }
+      return acc;
+    },
+    {} as Record<string, Record<string, CheapSharkDeal>>,
+  );
 
   const sortedTitles = Object.keys(dealsByTitle).sort(
-    (a, b) => Object.keys(dealsByTitle[b]).length - Object.keys(dealsByTitle[a]).length
+    (a, b) =>
+      Object.keys(dealsByTitle[b]).length - Object.keys(dealsByTitle[a]).length,
   );
 
   // Debug: log the stores and prices we have per title
@@ -234,35 +290,47 @@ export default function ExploreScreen() {
       title,
       stores: Object.values(dealsByTitle[title]).map((deal) => ({
         storeID: deal.storeID,
-        storeName: deal.storeID ? STORE_NAMES[deal.storeID] || 'Unknown' : 'Unknown',
+        storeName: deal.storeID
+          ? STORE_NAMES[deal.storeID] || "Unknown"
+          : "Unknown",
         salePrice: deal.salePrice,
         normalPrice: deal.normalPrice,
       })),
     }));
 
-    console.log('DEALS_DEBUG', JSON.stringify(debugPayload, null, 2));
+    console.log("DEALS_DEBUG", JSON.stringify(debugPayload, null, 2));
   }, [deals]);
 
   const handleAddComment = (text: string) => {
-    const newComment = { id: Date.now().toString(), userName: 'You', text, likes: 0, timeAgo: 'Just now' };
+    const newComment = {
+      id: Date.now().toString(),
+      userName: "You",
+      text,
+      likes: 0,
+      timeAgo: "Just now",
+    };
     setComments([newComment, ...comments]);
   };
 
   const handleLikeComment = (commentId: string) => {
     setComments((prev) =>
       prev.map((comment) =>
-        comment.id === commentId ? { ...comment, likes: comment.likes + 1 } : comment
-      )
+        comment.id === commentId
+          ? { ...comment, likes: comment.likes + 1 }
+          : comment,
+      ),
     );
   };
 
   const getDescriptionText = () => {
-    if (!description) return 'No description available';
-    
+    if (!description) return "No description available";
+
     const limits = [200, 400, 800];
     if (descriptionLevel < limits.length) {
       const limit = limits[descriptionLevel];
-      return description.length > limit ? description.substring(0, limit) + '...' : description;
+      return description.length > limit
+        ? description.substring(0, limit) + "..."
+        : description;
     }
     return description;
   };
@@ -277,12 +345,56 @@ export default function ExploreScreen() {
 
   const showDescriptionButton = description.length > 200;
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isWishlistLoading, setIsWishlistLoading] = useState(false);
 
   const primaryGenre = genres[0] || gameGenre;
 
-  const handleWishlistPress = () => {
-    // Solo toggling visual por ahora; backend se integra después
-    setIsWishlisted((prev) => !prev);
+  const handleWishlistPress = async () => {
+    try {
+      setIsWishlistLoading(true);
+      console.log("🎮 ========== WISHLIST PROCESS STARTED ==========");
+      console.log("📋 Juego:", { gameTitle, gameId, primaryGenre });
+
+      // Create game payload
+      const gamePayload = {
+        name: gameTitle,
+        api_id: gameId,
+        cover_image: gameImage,
+        genre: primaryGenre,
+        description: description || null,
+      };
+
+      console.log("📝 Game Payload:", JSON.stringify(gamePayload, null, 2));
+
+      // URL de RAWG para este juego
+      const gameUrl = `https://rawg.io/games/${gameId}`;
+
+      // Add to wishlist and update UI
+      console.log("⏳ Llamando a wishlistService.addByApiId()...");
+      const game = await wishlistService.addByApiId(gamePayload, gameUrl);
+
+      console.log("✅ ÉXITO! Guardado en BD:", JSON.stringify(game, null, 2));
+      console.log("🎮 ========== WISHLIST PROCESS COMPLETED ==========");
+
+      setIsWishlisted(true);
+      Alert.alert("✅ Éxito", `"${gameTitle}" agregado a tu wishlist`);
+    } catch (error: any) {
+      console.error("❌ ========== ERROR PROCESS ==========");
+      console.error("Error message:", error?.message);
+      console.error("Error status:", error?.status);
+      console.error("Error data:", error?.data);
+      console.error("Full error:", JSON.stringify(error, null, 2));
+      console.error("❌ ========== END ERROR ==========");
+
+      const errorMessage =
+        error?.message ||
+        error?.data?.detail ||
+        "No se pudo guardar en la wishlist. Verifica tu conexión.";
+      Alert.alert("❌ Error", errorMessage);
+      setIsWishlisted(false);
+    } finally {
+      setIsWishlistLoading(false);
+    }
   };
 
   return (
@@ -291,13 +403,29 @@ export default function ExploreScreen() {
       <MainHeader />
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.coverContainer}>
-          <Image source={{ uri: gameImage }} style={styles.cover} resizeMode="cover" />
+          <Image
+            source={{ uri: gameImage }}
+            style={styles.cover}
+            resizeMode="cover"
+          />
           <TouchableOpacity
-            style={[styles.wishlistButton, isWishlisted ? styles.wishlistActive : null]}
+            style={[
+              styles.wishlistButton,
+              isWishlisted ? styles.wishlistActive : null,
+            ]}
             onPress={handleWishlistPress}
+            disabled={isWishlistLoading}
             activeOpacity={0.8}
           >
-            <Heart size={18} color={isWishlisted ? '#FF4D6D' : '#FFFFFF'} fill={isWishlisted ? '#FF4D6D' : 'none'} />
+            {isWishlistLoading ? (
+              <ActivityIndicator size="small" color="#FF4D6D" />
+            ) : (
+              <Heart
+                size={18}
+                color={isWishlisted ? "#FF4D6D" : "#FFFFFF"}
+                fill={isWishlisted ? "#FF4D6D" : "none"}
+              />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -318,27 +446,38 @@ export default function ExploreScreen() {
         )}
 
         <Text style={styles.sectionTitle}>Description</Text>
-        <Text style={styles.description}>
-          {getDescriptionText()}
-        </Text>
+        <Text style={styles.description}>{getDescriptionText()}</Text>
         {showDescriptionButton && (
-          <TouchableOpacity onPress={handleDescriptionToggle} style={styles.seeMoreButton}>
+          <TouchableOpacity
+            onPress={handleDescriptionToggle}
+            style={styles.seeMoreButton}
+          >
             <Text style={styles.seeMoreText}>
-              {descriptionLevel === 3 ? 'Ver menos' : 'Ver más'}
+              {descriptionLevel === 3 ? "Ver menos" : "Ver más"}
             </Text>
           </TouchableOpacity>
         )}
 
         {loading ? (
-          <ActivityIndicator size="large" color="#FFFFFF" style={styles.loader} />
+          <ActivityIndicator
+            size="large"
+            color="#FFFFFF"
+            style={styles.loader}
+          />
         ) : (
           <>
             {sortedTitles.map((title, sectionIndex) => {
-              const storeDeals = Object.values(dealsByTitle[title]).sort((a, b) => {
-                const aPrice = parseFloat(a.salePrice || a.normalPrice || '999');
-                const bPrice = parseFloat(b.salePrice || b.normalPrice || '999');
-                return aPrice - bPrice;
-              });
+              const storeDeals = Object.values(dealsByTitle[title]).sort(
+                (a, b) => {
+                  const aPrice = parseFloat(
+                    a.salePrice || a.normalPrice || "999",
+                  );
+                  const bPrice = parseFloat(
+                    b.salePrice || b.normalPrice || "999",
+                  );
+                  return aPrice - bPrice;
+                },
+              );
 
               return storeDeals.length > 0 ? (
                 <GameVariantAccordion
@@ -354,7 +493,11 @@ export default function ExploreScreen() {
           </>
         )}
 
-        <CommentSection comments={comments} onAddComment={handleAddComment} onLikeComment={handleLikeComment} />
+        <CommentSection
+          comments={comments}
+          onAddComment={handleAddComment}
+          onLikeComment={handleLikeComment}
+        />
 
         <View style={styles.spacer} />
       </ScrollView>
@@ -364,11 +507,11 @@ export default function ExploreScreen() {
 
 const styles = StyleSheet.create({
   gestureArea: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     width: 50,
-    height: '100%',
+    height: "100%",
     zIndex: 5,
   },
   container: {
@@ -376,7 +519,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
   },
   coverContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 15,
     marginBottom: 15,
   },
@@ -387,54 +530,54 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    textAlign: 'center',
+    fontWeight: "600",
+    color: "#FFFFFF",
+    textAlign: "center",
     marginBottom: 5,
   },
   ratingContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 15,
   },
   ratingText: {
-    color: '#FFD700',
+    color: "#FFD700",
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   genresContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     paddingHorizontal: 20,
     marginBottom: 15,
     gap: 8,
   },
   genreBadge: {
-    backgroundColor: 'rgba(74, 158, 255, 0.2)',
+    backgroundColor: "rgba(74, 158, 255, 0.2)",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(74, 158, 255, 0.4)',
+    borderColor: "rgba(74, 158, 255, 0.4)",
   },
   genreText: {
-    color: '#4A9EFF',
+    color: "#4A9EFF",
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   sectionTitle: {
     fontSize: 11,
-    fontWeight: 'bold',
-    color: '#B0B0B0',
-    textAlign: 'left',
+    fontWeight: "bold",
+    color: "#B0B0B0",
+    textAlign: "left",
     marginBottom: 8,
     paddingHorizontal: 20,
   },
   description: {
     fontSize: 11,
-    fontWeight: '300',
-    color: '#E0E0E0',
-    textAlign: 'left',
+    fontWeight: "300",
+    color: "#E0E0E0",
+    textAlign: "left",
     lineHeight: 15,
     paddingHorizontal: 20,
     marginBottom: 4,
@@ -446,9 +589,9 @@ const styles = StyleSheet.create({
   },
   seeMoreText: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#4A9EFF',
-    textAlign: 'left',
+    fontWeight: "600",
+    color: "#4A9EFF",
+    textAlign: "left",
   },
   loader: {
     marginVertical: 30,
@@ -457,4 +600,3 @@ const styles = StyleSheet.create({
     height: 40,
   },
 });
-
