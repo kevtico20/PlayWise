@@ -27,17 +27,13 @@ export default function FriendsScreen() {
             <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
           </TouchableOpacity>
 
-          <Text className="text-white text-[20] font-semibold">
-            {t("friends.title")}
-          </Text>
+          <Text className="text-white font-semibold">{t("friends.title")}</Text>
 
           <View className="w-[28]" />
         </View>
 
         <View className="flex-1 items-center justify-center">
-          <Text className="text-white/50 text-[16]">
-            {t("friends.title")} - Coming Soon
-          </Text>
+          <Text className="text-[16]">{t("friends.title")} - Coming Soon</Text>
         </View>
       </SafeAreaView>
     </LinearGradient>

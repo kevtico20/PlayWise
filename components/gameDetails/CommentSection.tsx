@@ -40,7 +40,8 @@ export default function CommentSection({
   };
 
   const renderComment = (item: Comment) => (
-    <View key={item.id} className="flex-row mb-5">
+    <View key={item.id} className="flex-row mb-3">
+      {/* Avatar */}
       <View className="mr-3">
         {item.avatar ? (
           <Image
@@ -56,15 +57,16 @@ export default function CommentSection({
         )}
       </View>
 
+      {/* Content */}
       <View className="flex-1">
-        <View className="flex-row items-center mb-1">
+        <View className="flex-row items-center mb-[2]">
           <Text className="text-white text-[14px] font-semibold mr-2">
             {item.userName}
           </Text>
           <Text className="text-[#999999] text-[12px]">{item.timeAgo}</Text>
         </View>
 
-        <Text className="text-white text-[13px] leading-[18] mb-2">
+        <Text className="text-white text-[14px] leading-[2] mb-4 ">
           {item.text}
         </Text>
 
@@ -113,8 +115,8 @@ export default function CommentSection({
       </View>
 
       {/* Comments List */}
-      <View className="bg-black/50 rounded-[12] p-4 min-h-[300]">
-        <Text className="text-white text-[18px] font-semibold mb-4">
+      <View className="bg-black/50 rounded-[12] p-3 min-h-[300]">
+        <Text className="text-white text-[18px] font-semibold mb-3">
           Comments
         </Text>
 
