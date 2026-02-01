@@ -1,9 +1,4 @@
-import {
-    ActivityIndicator,
-    Text,
-    TouchableOpacity,
-    View,
-} from "react-native";
+import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { useTranslation } from "../../hooks/use-translation";
 import AnimatedHintInput from "../common/AnimatedHintInput";
 import AnimatedHintPasswordInput from "../common/AnimatedHintPasswordInput";
@@ -23,6 +18,7 @@ interface LoginFormProps {
   onPasswordChange: (text: string) => void;
   onLogin: () => void;
   onNavigateToRegister: () => void;
+  onNavigateToForgotPassword: () => void;
 }
 
 export default function LoginForm({
@@ -34,6 +30,7 @@ export default function LoginForm({
   onPasswordChange,
   onLogin,
   onNavigateToRegister,
+  onNavigateToForgotPassword,
 }: LoginFormProps) {
   const { t } = useTranslation();
 
@@ -56,6 +53,17 @@ export default function LoginForm({
           editable={!loading}
           error={errors.password}
         />
+
+        {/* Link para recuperar contraseña */}
+        <TouchableOpacity
+          className="self-end mt-1"
+          onPress={onNavigateToForgotPassword}
+          disabled={loading}
+        >
+          <Text className="text-white/70 text-sm">
+            {t("auth.forgotPassword")}
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {loading && (

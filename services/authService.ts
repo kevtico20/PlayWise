@@ -435,6 +435,52 @@ class AuthService {
   }
 
   /**
+   * Solicitar reset de contraseña
+   * Envía un email con el link para resetear la contraseña
+   */
+  async requestPasswordReset(email: string): Promise<{ message: string }> {
+    try {
+      const response = await fetchAPI<{ message: string }>(
+        `/auth/request-password-reset?email=${encodeURIComponent(email)}`,
+        {
+          method: "POST",
+        },
+      );
+
+      return response;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
+   * Resetear contraseña con token
+   * @param token - Token recibido por email
+   * @param newPassword - Nueva contraseña
+   */
+  async resetPassword(
+    token: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    try {
+      const response = await fetchAPI<{ message: string }>(
+        "/auth/reset-password",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            token,
+            new_password: newPassword,
+          }),
+        },
+      );
+
+      return response;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
+
+  /**
    * Obtener email pendiente de verificación OTP
    */
   getPendingLoginEmail(): string | null {

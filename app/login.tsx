@@ -74,9 +74,9 @@ export default function LoginScreen() {
       if (response.access_token && response.refresh_token) {
         await storageService.saveTokens(
           response.access_token,
-          response.refresh_token
+          response.refresh_token,
         );
-        
+
         // Guardar datos del usuario si están disponibles en la respuesta
         if (response.user) {
           console.log("Saving user from response:", response.user);
@@ -85,7 +85,9 @@ export default function LoginScreen() {
           // Si no vienen en la respuesta, obtenerlos del endpoint /users/me
           try {
             console.log("Fetching user data from /users/me");
-            const userData = await authService.getCurrentUser(response.access_token);
+            const userData = await authService.getCurrentUser(
+              response.access_token,
+            );
             console.log("User data from /users/me:", userData);
             await storageService.saveUserData(userData);
           } catch (error) {
@@ -97,7 +99,7 @@ export default function LoginScreen() {
               await storageService.saveUserData({
                 email: extracted.email || email.trim(),
                 username:
-                  extracted.username || (email.trim().split("@")[0] || ""),
+                  extracted.username || email.trim().split("@")[0] || "",
               });
             } else {
               // Fallback 2: guardar usuario mínimo con el email
@@ -108,7 +110,7 @@ export default function LoginScreen() {
             }
           }
         }
-        
+
         // Navegar al tab 'main' (los grupos '(tabs)' no forman parte de la ruta)
         router.replace("/main");
       }
@@ -131,6 +133,10 @@ export default function LoginScreen() {
 
   const handleNavigateToRegister = () => {
     router.push("/register");
+  };
+
+  const handleNavigateToForgotPassword = () => {
+    router.push("/forgot-password" as any);
   };
 
   return (
@@ -160,6 +166,7 @@ export default function LoginScreen() {
               onPasswordChange={handlePasswordChange}
               onLogin={handleLogin}
               onNavigateToRegister={handleNavigateToRegister}
+              onNavigateToForgotPassword={handleNavigateToForgotPassword}
             />
 
             <View className="absolute bottom-0 left-0 right-0 pointer-events-none">
