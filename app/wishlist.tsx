@@ -16,6 +16,71 @@ import { useTranslation } from "../hooks/use-translation";
 import storageService from "../services/storageService";
 import wishlistService from "../services/wishlistService";
 
+// Componente para cada item de la wishlist
+function WishlistItem({
+  item,
+  onDelete,
+  t,
+}: {
+  item: any;
+  onDelete: () => void;
+  t: any;
+}) {
+  const cover = item.game_cover_image || null;
+  const name = item.game_name || t("common.unknown");
+  const genre = item.game_genre || "";
+  const description = item.game_description || "";
+  const developer = item.game_developer || null;
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      className="flex-row items-center px-4 py-3 border-b border-white/10 gap-4"
+    >
+      {/* Información del juego (izquierda) */}
+      <View className="flex-1">
+        <Text
+          className="text-white text-[20px] font-semibold mb-1"
+          numberOfLines={2}
+        >
+          {name}
+        </Text>
+
+        {!!genre && (
+          <Text className="text-white/70 text-[15px] mb-2" numberOfLines={1}>
+            {genre}
+          </Text>
+        )}
+
+        {!!developer && (
+          <Text className="text-white/60 text-[13px] mb-2" numberOfLines={1}>
+            {developer}
+          </Text>
+        )}
+
+        {!!description && (
+          <Text className="text-white/50 text-[13px]" numberOfLines={2}>
+            {description}
+          </Text>
+        )}
+      </View>
+
+      {/* Imagen (derecha) */}
+      {cover ? (
+        <Image
+          source={{ uri: cover }}
+          className="w-[80] h-[110] rounded-[6]"
+          resizeMode="cover"
+        />
+      ) : (
+        <View className="w-[80] h-[110] rounded-[6] bg-white/20 items-center justify-center">
+          <Ionicons name="image-outline" size={40} color="#FFFFFF/50" />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+}
+
 export default function WishlistScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -32,8 +97,10 @@ export default function WishlistScreen() {
           return;
         }
         const list = await wishlistService.list();
+        console.log("🎮 Wishlist items:", JSON.stringify(list, null, 2));
         if (mounted) setItems(Array.isArray(list) ? list : []);
-      } catch {
+      } catch (error) {
+        console.error("❌ Error:", error);
         if (mounted) setItems([]);
       } finally {
         if (mounted) setLoading(false);
@@ -64,55 +131,34 @@ export default function WishlistScreen() {
         </View>
 
         {/* Content */}
-        <View className="flex-1 items-center justify-center">
+        <View className="flex-1 w-full">
           {loading ? (
             <ActivityIndicator size="large" color="#FFFFFF" />
           ) : items.length === 0 ? (
-            <Text className="text-white/50 text-[16px]">
-              {t("games.wishlist")} vacía
-            </Text>
+            <View className="flex-1 items-center justify-center">
+              <Text className="text-white/50 text-[16px]">
+                {t("games.wishlist")} vacía
+              </Text>
+            </View>
           ) : (
             <FlatList
               data={items}
               keyExtractor={(item) => String(item.id)}
               contentContainerStyle={{ paddingVertical: 8 }}
-              renderItem={({ item }) => {
-                const cover = item.game_cover || item.game?.cover_image || null;
-                const name =
-                  item.game_name || item.game?.name || t("common.unknown");
-                const genre = item.game_genre || item.game?.genre || "";
-
-                return (
-                  <View className="flex-row items-center px-4 py-3 border-b border-white/10">
-                    {cover ? (
-                      <Image
-                        source={{ uri: cover }}
-                        className="w-[60] h-[80] rounded-[4] mr-3"
-                      />
-                    ) : (
-                      <View className="w-[60] h-[80] rounded-[4] mr-3 bg-white/20" />
-                    )}
-
-                    <View className="flex-1">
-                      <Text
-                        className="text-white text-[14px] font-semibold"
-                        numberOfLines={1}
-                      >
-                        {name}
-                      </Text>
-
-                      {!!genre && (
-                        <Text
-                          className="text-white/50 text-[12px] mt-1"
-                          numberOfLines={1}
-                        >
-                          {genre}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                );
-              }}
+              renderItem={({ item }) => (
+                <WishlistItem
+                  item={item}
+                  t={t}
+                  onDelete={async () => {
+                    try {
+                      await wishlistService.removeByWishlistId(String(item.id));
+                      setItems(items.filter((i) => i.id !== item.id));
+                    } catch (error) {
+                      console.error("❌ Error eliminando:", error);
+                    }
+                  }}
+                />
+              )}
             />
           )}
         </View>
