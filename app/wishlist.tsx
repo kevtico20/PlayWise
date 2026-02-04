@@ -10,6 +10,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import {
+  GestureHandlerRootView,
+  Swipeable,
+} from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { APP_COLORS } from "../constants/colors";
 import { useTranslation } from "../hooks/use-translation";
@@ -32,52 +36,61 @@ function WishlistItem({
   const description = item.game_description || "";
   const developer = item.game_developer || null;
 
-  return (
+  const renderRightActions = () => (
     <TouchableOpacity
-      activeOpacity={0.7}
-      className="flex-row items-center px-4 py-3 border-b border-white/10 gap-4"
+      onPress={onDelete}
+      className="bg-red-600 items-center justify-center px-6"
+      style={{ width: 80 }}
     >
-      {/* Información del juego (izquierda) */}
-      <View className="flex-1">
-        <Text
-          className="text-white text-[20px] font-semibold mb-1"
-          numberOfLines={2}
-        >
-          {name}
-        </Text>
+      <Ionicons name="trash-outline" size={28} color="#FFFFFF" />
+    </TouchableOpacity>
+  );
 
-        {!!genre && (
-          <Text className="text-white/70 text-[15px] mb-2" numberOfLines={1}>
-            {genre}
+  return (
+    <Swipeable renderRightActions={renderRightActions} overshootRight={false}>
+      <View className="flex-row items-center px-4 py-3 border-b border-white/10 gap-4 bg-[#1A1A2E]">
+        {/* Información del juego (izquierda) */}
+        <View className="flex-1">
+          <Text
+            className="text-white text-[20px] font-semibold mb-1"
+            numberOfLines={2}
+          >
+            {name}
           </Text>
-        )}
 
-        {!!developer && (
-          <Text className="text-white/60 text-[13px] mb-2" numberOfLines={1}>
-            {developer}
-          </Text>
-        )}
+          {!!genre && (
+            <Text className="text-white/70 text-[15px] mb-2" numberOfLines={1}>
+              {genre}
+            </Text>
+          )}
 
-        {!!description && (
-          <Text className="text-white/50 text-[13px]" numberOfLines={2}>
-            {description}
-          </Text>
+          {!!developer && (
+            <Text className="text-white/60 text-[13px] mb-2" numberOfLines={1}>
+              {developer}
+            </Text>
+          )}
+
+          {!!description && (
+            <Text className="text-white/50 text-[13px]" numberOfLines={2}>
+              {description}
+            </Text>
+          )}
+        </View>
+
+        {/* Imagen (derecha) */}
+        {cover ? (
+          <Image
+            source={{ uri: cover }}
+            className="w-[80] h-[110] rounded-[6]"
+            resizeMode="cover"
+          />
+        ) : (
+          <View className="w-[80] h-[110] rounded-[6] bg-white/20 items-center justify-center">
+            <Ionicons name="image-outline" size={40} color="#FFFFFF/50" />
+          </View>
         )}
       </View>
-
-      {/* Imagen (derecha) */}
-      {cover ? (
-        <Image
-          source={{ uri: cover }}
-          className="w-[80] h-[110] rounded-[6]"
-          resizeMode="cover"
-        />
-      ) : (
-        <View className="w-[80] h-[110] rounded-[6] bg-white/20 items-center justify-center">
-          <Ionicons name="image-outline" size={40} color="#FFFFFF/50" />
-        </View>
-      )}
-    </TouchableOpacity>
+    </Swipeable>
   );
 }
 
@@ -112,57 +125,61 @@ export default function WishlistScreen() {
   }, []);
 
   return (
-    <LinearGradient
-      colors={[APP_COLORS.gradientTop, APP_COLORS.gradientBottom]}
-      className="flex-1"
-    >
-      <SafeAreaView className="flex-1">
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <LinearGradient
+        colors={[APP_COLORS.gradientTop, APP_COLORS.gradientBottom]}
+        className="flex-1"
+      >
+        <SafeAreaView className="flex-1">
+          {/* Header */}
+          <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10">
+            <TouchableOpacity onPress={() => router.back()}>
+              <Ionicons name="chevron-back" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
 
-          <Text className="text-white text-[20px] font-semibold">
-            {t("games.wishlist")}
-          </Text>
+            <Text className="text-white text-[20px] font-semibold">
+              {t("games.wishlist")}
+            </Text>
 
-          <View className="w-[28]" />
-        </View>
+            <View className="w-[28]" />
+          </View>
 
-        {/* Content */}
-        <View className="flex-1 w-full">
-          {loading ? (
-            <ActivityIndicator size="large" color="#FFFFFF" />
-          ) : items.length === 0 ? (
-            <View className="flex-1 items-center justify-center">
-              <Text className="text-white/50 text-[16px]">
-                {t("games.wishlist")} vacía
-              </Text>
-            </View>
-          ) : (
-            <FlatList
-              data={items}
-              keyExtractor={(item) => String(item.id)}
-              contentContainerStyle={{ paddingVertical: 8 }}
-              renderItem={({ item }) => (
-                <WishlistItem
-                  item={item}
-                  t={t}
-                  onDelete={async () => {
-                    try {
-                      await wishlistService.removeByWishlistId(String(item.id));
-                      setItems(items.filter((i) => i.id !== item.id));
-                    } catch (error) {
-                      console.error("❌ Error eliminando:", error);
-                    }
-                  }}
-                />
-              )}
-            />
-          )}
-        </View>
-      </SafeAreaView>
-    </LinearGradient>
+          {/* Content */}
+          <View className="flex-1 w-full">
+            {loading ? (
+              <ActivityIndicator size="large" color="#FFFFFF" />
+            ) : items.length === 0 ? (
+              <View className="flex-1 items-center justify-center">
+                <Text className="text-white/50 text-[16px]">
+                  {t("games.wishlist")} vacía
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={items}
+                keyExtractor={(item) => String(item.id)}
+                contentContainerStyle={{ paddingVertical: 8 }}
+                renderItem={({ item }) => (
+                  <WishlistItem
+                    item={item}
+                    t={t}
+                    onDelete={async () => {
+                      try {
+                        await wishlistService.removeByWishlistId(
+                          String(item.id),
+                        );
+                        setItems(items.filter((i) => i.id !== item.id));
+                      } catch (error) {
+                        console.error("❌ Error eliminando:", error);
+                      }
+                    }}
+                  />
+                )}
+              />
+            )}
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+    </GestureHandlerRootView>
   );
 }
