@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
 import { useCurrentUser } from "../../hooks/use-current-user";
@@ -11,6 +12,7 @@ interface MainHeaderProps {
 export default function MainHeader({ onSearchPress }: MainHeaderProps) {
   const { getUserInitial } = useCurrentUser();
   const [menuVisible, setMenuVisible] = useState(false);
+  const router = useRouter();
 
   return (
     <>
@@ -23,7 +25,11 @@ export default function MainHeader({ onSearchPress }: MainHeaderProps) {
 
         <View className="flex-row items-center gap-[10]">
           <TouchableOpacity
-            onPress={onSearchPress}
+            onPress={() => {
+              if (onSearchPress) return onSearchPress();
+              // Navegar a la pantalla de búsqueda por defecto
+              (router as any).push({ pathname: "/search" });
+            }}
             className="w-[23] h-[23] justify-center items-center"
           >
             <Ionicons name="search" size={23} color="#FFFFFF" />
