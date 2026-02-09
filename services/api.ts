@@ -216,4 +216,64 @@ export async function fetchAuthAPI<T>(
   }
 }
 
+/**
+ * API object with HTTP methods
+ */
+export const api = {
+  async get<T>(
+    endpoint: string,
+    config?: { params?: Record<string, any> },
+  ): Promise<{ data: T }> {
+    const token = await storageService.getAccessToken();
+    const queryParams = config?.params
+      ? "?" + new URLSearchParams(config.params).toString()
+      : "";
+    const data = token
+      ? await fetchAuthAPI<T>(endpoint + queryParams, token)
+      : await fetchAPI<T>(endpoint + queryParams);
+    return { data };
+  },
+
+  async post<T>(endpoint: string, body?: any): Promise<{ data: T }> {
+    const token = await storageService.getAccessToken();
+    if (!token) {
+      // Check if this is an auth endpoint (login/register/etc)
+      const isAuthEndpoint = endpoint.includes("/auth/");
+      if (!isAuthEndpoint) {
+        throw new Error("Authentication required. Please login first.");
+      }
+    }
+
+    const data = token
+      ? await fetchAuthAPI<T>(endpoint, token, {
+          method: "POST",
+          body: JSON.stringify(body),
+        })
+      : await fetchAPI<T>(endpoint, {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+    return { data };
+  },
+
+  async put<T>(endpoint: string, body?: any): Promise<{ data: T }> {
+    const token = await storageService.getAccessToken();
+    if (!token) throw new Error("Authentication required");
+    const data = await fetchAuthAPI<T>(endpoint, token, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+    return { data };
+  },
+
+  async delete<T>(endpoint: string): Promise<{ data: T }> {
+    const token = await storageService.getAccessToken();
+    if (!token) throw new Error("Authentication required");
+    const data = await fetchAuthAPI<T>(endpoint, token, {
+      method: "DELETE",
+    });
+    return { data };
+  },
+};
+
 export default API_CONFIG;

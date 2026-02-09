@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-  Image,
-  Keyboard,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Image,
+    Keyboard,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface Comment {
@@ -20,12 +20,14 @@ interface Comment {
 
 interface CommentSectionProps {
   comments: Comment[];
+  likedComments?: Set<string>;
   onAddComment?: (text: string) => void;
   onLikeComment?: (commentId: string) => void;
 }
 
 export default function CommentSection({
   comments,
+  likedComments = new Set(),
   onAddComment,
   onLikeComment,
 }: CommentSectionProps) {
@@ -75,8 +77,18 @@ export default function CommentSection({
             className="flex-row items-center"
             onPress={() => onLikeComment?.(item.id)}
           >
-            <Ionicons name="thumbs-up-outline" size={14} color="#FFFFFF" />
-            <Text className="text-white text-[12px] ml-1">{item.likes}</Text>
+            <Ionicons
+              name={
+                likedComments.has(item.id) ? "thumbs-up" : "thumbs-up-outline"
+              }
+              size={14}
+              color={likedComments.has(item.id) ? "#4A9EFF" : "#FFFFFF"}
+            />
+            <Text
+              className={`text-[12px] ml-1 ${likedComments.has(item.id) ? "text-[#4A9EFF]" : "text-white"}`}
+            >
+              {item.likes}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity className="ml-4">

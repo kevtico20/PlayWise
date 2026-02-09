@@ -22,33 +22,9 @@ import {
   searchDealsByTitle,
   searchDealsByTitleExact,
 } from "../../services/cheapSharkService";
+import commentService from "../../services/commentService";
 import { getGameDetails, RawgGameFull } from "../../services/rawgService";
 import wishlistService from "../../services/wishlistService";
-
-// Mock data para comentarios
-const MOCK_COMMENTS = [
-  {
-    id: "1",
-    userName: "Heart_beat",
-    text: "An artist in every sense! Absolutely love his work.",
-    likes: 285,
-    timeAgo: "10min ago",
-  },
-  {
-    id: "2",
-    userName: "Olivia55_12",
-    text: "@Heart_beat He is a legend. One of my favorites!",
-    likes: 63,
-    timeAgo: "21min ago",
-  },
-  {
-    id: "3",
-    userName: "Receptionist77",
-    text: "@Olivia55_12 Each song in this album is a hit",
-    likes: 12,
-    timeAgo: "1h ago",
-  },
-];
 
 // Store logos URLs
 const STORE_LOGOS: { [key: string]: { uri: string } } = {
@@ -126,7 +102,8 @@ export default function ExploreScreen() {
 
   const [deals, setDeals] = useState<CheapSharkDeal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [comments, setComments] = useState(MOCK_COMMENTS);
+  const [comments, setComments] = useState([]);
+  const [likedComments, setLikedComments] = useState<Set<string>>(new Set());
   const [gameDetails, setGameDetails] = useState<RawgGameFull | null>(null);
   const [description, setDescription] = useState("");
   const [detailedRating, setDetailedRating] = useState<number>(gameRating);
@@ -149,10 +126,12 @@ export default function ExploreScreen() {
 
   useEffect(() => {
     loadGameData();
+    loadComments();
   }, [gameId, gameTitle]);
 
   const loadGameData = async () => {
     try {
+      setLoading(true);
       setLoading(true);
 
       if (gameId && gameId !== "3328") {
@@ -286,25 +265,75 @@ export default function ExploreScreen() {
     console.log("DEALS_DEBUG", JSON.stringify(debugPayload, null, 2));
   }, [deals]);
 
-  const handleAddComment = (text: string) => {
-    const newComment = {
-      id: Date.now().toString(),
-      userName: "You",
-      text,
-      likes: 0,
-      timeAgo: "Just now",
-    };
-    setComments([newComment, ...comments]);
+  // Load comments from backend
+  const loadComments = async () => {
+    try {
+      const backendComments = await commentService.getByApiId(gameId);
+      const formattedComments = backendComments.map((c) =>
+        commentService.formatForDisplay(c),
+      );
+      setComments(formattedComments);
+
+      // Load liked status for each comment
+      const likedSet = new Set<string>();
+      for (const comment of backendComments) {
+        try {
+          const hasLiked = await commentService.hasLiked(comment.id);
+          if (hasLiked) {
+            likedSet.add(comment.id);
+          }
+        } catch (error) {
+          // If error checking like status (e.g., not authenticated), just skip
+          console.log(`Could not check like status for comment ${comment.id}`);
+        }
+      }
+      setLikedComments(likedSet);
+    } catch (error) {
+      console.error("Error loading comments:", error);
+      setComments([]);
+    }
   };
 
-  const handleLikeComment = (commentId: string) => {
-    setComments((prev) =>
-      prev.map((comment) =>
-        comment.id === commentId
-          ? { ...comment, likes: comment.likes + 1 }
-          : comment,
-      ),
-    );
+  const handleAddComment = async (text: string) => {
+    try {
+      await commentService.create({
+        api_id: gameId,
+        game_name: gameTitle,
+        content: text,
+        is_public: true,
+      });
+      await loadComments();
+      Alert.alert("Success", "Comment added!");
+    } catch (error) {
+      console.error("Error adding comment:", error);
+      Alert.alert("Error", "Failed to add comment. Please try again.");
+    }
+  };
+
+  const handleLikeComment = async (commentId: string) => {
+    try {
+      const isCurrentlyLiked = likedComments.has(commentId);
+
+      if (isCurrentlyLiked) {
+        // Unlike the comment
+        await commentService.unlike(commentId);
+        setLikedComments((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(commentId);
+          return newSet;
+        });
+      } else {
+        // Like the comment
+        await commentService.like(commentId);
+        setLikedComments((prev) => new Set(prev).add(commentId));
+      }
+
+      // Reload comments to get updated likes count
+      await loadComments();
+    } catch (error) {
+      console.error("Error toggling like on comment:", error);
+      Alert.alert("Error", "Failed to update like. Please try again.");
+    }
   };
 
   const getDescriptionText = () => {
@@ -558,6 +587,7 @@ export default function ExploreScreen() {
 
         <CommentSection
           comments={comments}
+          likedComments={likedComments}
           onAddComment={handleAddComment}
           onLikeComment={handleLikeComment}
         />
