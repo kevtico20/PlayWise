@@ -3,18 +3,19 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { APP_COLORS } from "../constants/colors";
 import { useCurrentUser } from "../hooks/use-current-user";
 import { useTranslation } from "../hooks/use-translation";
+import friendsService from "../services/friendsService";
 import storageService from "../services/storageService";
 
 export default function SettingsScreen() {
@@ -26,14 +27,29 @@ export default function SettingsScreen() {
   const [email, setEmail] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [friendsCount, setFriendsCount] = useState(0);
+  const [loadingStats, setLoadingStats] = useState(true);
 
   // Cargar datos del usuario cuando esté disponible
   React.useEffect(() => {
     if (user) {
       setUsername(user.username || "");
       setEmail(user.email || "");
+      loadFriendsCount();
     }
   }, [user]);
+
+  const loadFriendsCount = async () => {
+    try {
+      setLoadingStats(true);
+      const friends = await friendsService.getFriends();
+      setFriendsCount(friends.length);
+    } catch (error) {
+      console.warn("Error loading friends count:", error);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -237,7 +253,13 @@ export default function SettingsScreen() {
                 <Ionicons name="people-outline" size={20} color="#FFFFFF" />
                 <Text className="text-white text-[16px] ml-3">Amigos</Text>
               </View>
-              <Text className="text-white text-[16px] font-semibold">0</Text>
+              {loadingStats ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text className="text-white text-[16px] font-semibold">
+                  {friendsCount}
+                </Text>
+              )}
             </View>
           </View>
 
