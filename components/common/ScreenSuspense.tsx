@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, Text, View } from "react-native";
+import { useTranslation } from "../../hooks/use-translation";
 
 type Props = React.PropsWithChildren<{
   loading: boolean;
 }>;
 
 export default function ScreenSuspense({ loading, children }: Props) {
+  const { t } = useTranslation();
   const pulse = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function ScreenSuspense({ loading, children }: Props) {
       </View>
 
       <Text className="text-[#ddd] mt-3 text-[12px]">
-        Cargando contenido...
+        {t("common.loadingContent")}
       </Text>
     </View>
   );

@@ -16,6 +16,7 @@ import GradientBackground from "../../components/GradientBackground";
 import CommentSection from "../../components/gameDetails/CommentSection";
 import GameVariantAccordion from "../../components/gameDetails/GameVariantAccordion";
 import MainHeader from "../../components/main/MainHeader";
+import { useTranslation } from "../../hooks/use-translation";
 import {
   CheapSharkDeal,
   searchDealsBySteamAppID,
@@ -89,6 +90,7 @@ const STORE_NAMES: { [key: string]: string } = {
 };
 
 export default function ExploreScreen() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams();
   const router = useRouter();
 
@@ -303,10 +305,10 @@ export default function ExploreScreen() {
         is_public: true,
       });
       await loadComments();
-      Alert.alert("Success", "Comment added!");
+      Alert.alert(t("common.success"), t("games.commentAdded"));
     } catch (error) {
       console.error("Error adding comment:", error);
-      Alert.alert("Error", "Failed to add comment. Please try again.");
+      Alert.alert(t("common.error"), t("games.commentError"));
     }
   };
 
@@ -332,12 +334,12 @@ export default function ExploreScreen() {
       await loadComments();
     } catch (error) {
       console.error("Error toggling like on comment:", error);
-      Alert.alert("Error", "Failed to update like. Please try again.");
+      Alert.alert(t("common.error"), t("games.likeError"));
     }
   };
 
   const getDescriptionText = () => {
-    if (!description) return "No description available";
+    if (!description) return t("games.noDescription");
 
     const limits = [200, 400, 800];
     if (descriptionLevel < limits.length) {
@@ -424,7 +426,10 @@ export default function ExploreScreen() {
           await wishlistService.removeByWishlistId(targetId);
           setIsWishlisted(false);
           setWishlistId(null);
-          Alert.alert("🗑️ Eliminado", `"${gameTitle}" se quitó de tu wishlist`);
+          Alert.alert(
+            t("games.removed"),
+            t("games.removedFromWishlist").replace("{title}", gameTitle),
+          );
         } else {
           console.warn(
             "⚠️ No se encontró wishlistId para eliminar; refrescando estado",
@@ -440,7 +445,10 @@ export default function ExploreScreen() {
 
         await refreshWishlistState();
         setIsWishlisted(true);
-        Alert.alert("✅ Éxito", `"${gameTitle}" agregado a tu wishlist`);
+        Alert.alert(
+          t("common.success"),
+          t("games.addedToWishlist").replace("{title}", gameTitle),
+        );
       }
     } catch (error: any) {
       console.error("❌ ========== ERROR PROCESS ==========");
@@ -451,10 +459,8 @@ export default function ExploreScreen() {
       console.error("❌ ========== END ERROR ==========");
 
       const errorMessage =
-        error?.message ||
-        error?.data?.detail ||
-        "No se pudo guardar en la wishlist. Verifica tu conexión.";
-      Alert.alert("❌ Error", errorMessage);
+        error?.message || error?.data?.detail || t("games.wishlistError");
+      Alert.alert(t("common.error"), errorMessage);
       setIsWishlisted(false);
       setWishlistId(null);
     } finally {
@@ -532,7 +538,7 @@ export default function ExploreScreen() {
         )}
 
         <Text className="text-[11px] font-bold text-[#B0B0B0] text-left mb-[8px] px-[20px]">
-          Description
+          {t("games.description")}
         </Text>
 
         <Text className="text-[11px] font-light text-[#E0E0E0] text-left leading-[15px] px-[20px] mb-[4px]">
@@ -545,7 +551,9 @@ export default function ExploreScreen() {
             className="px-[20px] py-[4px] mb-[12px]"
           >
             <Text className="text-[11px] font-semibold text-[#4A9EFF] text-left">
-              {descriptionLevel === 3 ? "Ver menos" : "Ver más"}
+              {descriptionLevel === 3
+                ? t("common.viewLess")
+                : t("common.viewMore")}
             </Text>
           </TouchableOpacity>
         )}

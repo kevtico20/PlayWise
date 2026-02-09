@@ -16,39 +16,32 @@ export default function ProfileMenu({ visible, onClose }: ProfileMenuProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
-    Alert.alert(
-      t("common.confirm"),
-      t("auth.logoutConfirm") || "¿Estás seguro de que deseas cerrar sesión?",
-      [
-        {
-          text: t("common.cancel") || "Cancelar",
-          onPress: () => {},
-          style: "cancel",
+    Alert.alert(t("common.confirm"), t("auth.logoutConfirm"), [
+      {
+        text: t("common.cancel"),
+        onPress: () => {},
+        style: "cancel",
+      },
+      {
+        text: t("auth.logout"),
+        onPress: async () => {
+          try {
+            await storageService.clear();
+            onClose();
+            router.replace("/login");
+          } catch (error) {
+            Alert.alert(t("common.error"), t("auth.logoutError"));
+          }
         },
-        {
-          text: t("auth.logout") || "Cerrar sesión",
-          onPress: async () => {
-            try {
-              await storageService.clear();
-              onClose();
-              router.replace("/login");
-            } catch (error) {
-              Alert.alert(
-                t("common.error"),
-                t("auth.logoutError") || "Error al cerrar sesión",
-              );
-            }
-          },
-          style: "destructive",
-        },
-      ],
-    );
+        style: "destructive",
+      },
+    ]);
   };
 
   const menuItems = [
     {
       id: "wishlist",
-      label: t("menu.wishlist") || "Lista de deseos",
+      label: t("menu.wishlist"),
       icon: "heart-outline" as const,
       onPress: () => {
         onClose();
@@ -57,7 +50,7 @@ export default function ProfileMenu({ visible, onClose }: ProfileMenuProps) {
     },
     {
       id: "friends",
-      label: t("menu.friends") || "Amigos",
+      label: t("menu.friends"),
       icon: "people-outline" as const,
       onPress: () => {
         onClose();
@@ -66,7 +59,7 @@ export default function ProfileMenu({ visible, onClose }: ProfileMenuProps) {
     },
     {
       id: "settings",
-      label: t("menu.accountSettings") || "Configuración de cuenta",
+      label: t("menu.accountSettings"),
       icon: "settings-outline" as const,
       onPress: () => {
         onClose();

@@ -1,5 +1,6 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { i18n } from "../../i18n";
 
 type State = {
   hasError: boolean;
@@ -7,7 +8,10 @@ type State = {
   info?: any;
 };
 
-export default class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, State> {
+export default class ErrorBoundary extends React.Component<
+  React.PropsWithChildren<{}>,
+  State
+> {
   constructor(props: any) {
     super(props);
     this.state = { hasError: false };
@@ -19,7 +23,7 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
   componentDidCatch(error: Error, info: any) {
     // Log to console — Metro/Expo will capture this
-    console.error('ErrorBoundary caught error:', error);
+    console.error("ErrorBoundary caught error:", error);
     console.error(info);
     this.setState({ error, info });
   }
@@ -30,12 +34,14 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 
   render() {
     if (this.state.hasError) {
+      const t = (key: string) => i18n.t(key);
+
       return (
         <View style={styles.container}>
-          <Text style={styles.title}>Ha ocurrido un error en el componente</Text>
+          <Text style={styles.title}>{t("common.componentError")}</Text>
           <Text style={styles.message}>{this.state.error?.message}</Text>
           <TouchableOpacity onPress={this.reset} style={styles.button}>
-            <Text style={styles.buttonText}>Reintentar</Text>
+            <Text style={styles.buttonText}>{t("common.retry")}</Text>
           </TouchableOpacity>
         </View>
       );
@@ -48,32 +54,32 @@ export default class ErrorBoundary extends React.Component<React.PropsWithChildr
 const styles = StyleSheet.create({
   container: {
     height: 340,
-    width: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#111',
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#111",
   },
   title: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 8,
   },
   message: {
-    color: '#ddd',
+    color: "#ddd",
     fontSize: 12,
     marginBottom: 12,
     paddingHorizontal: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   button: {
-    backgroundColor: '#D21718',
+    backgroundColor: "#D21718",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   buttonText: {
-    color: '#fff',
-    fontWeight: '600',
+    color: "#fff",
+    fontWeight: "600",
   },
 });

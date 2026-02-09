@@ -3,13 +3,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { APP_COLORS } from "../constants/colors";
@@ -20,7 +20,7 @@ import storageService from "../services/storageService";
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, changeLanguage, locale, isChanging } = useTranslation();
   const { user, loading: userLoading } = useCurrentUser();
 
   const [username, setUsername] = useState("");
@@ -55,59 +55,69 @@ export default function SettingsScreen() {
     setSaving(true);
     try {
       // Aquí implementarías la lógica para actualizar el usuario en el backend
-      Alert.alert(t("common.success"), "Perfil actualizado correctamente");
+      Alert.alert(t("common.success"), t("settings.profileUpdated"));
       setIsEditing(false);
     } catch (error) {
-      Alert.alert(t("common.error"), "No se pudo actualizar el perfil");
+      Alert.alert(t("common.error"), t("settings.profileUpdateError"));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      "Eliminar Cuenta",
-      "¿Estás seguro de que deseas eliminar tu cuenta? Esta acción no se puede deshacer.",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              // Aquí implementarías la lógica para eliminar la cuenta
-              await storageService.clearStorage();
-              router.replace("/login");
-            } catch (error) {
-              Alert.alert(t("common.error"), "No se pudo eliminar la cuenta");
-            }
-          },
-        },
-      ],
-    );
-  };
-
-  const handleLogout = async () => {
-    Alert.alert("Cerrar Sesión", "¿Estás seguro de que deseas cerrar sesión?", [
+    Alert.alert(t("settings.deleteAccount"), t("settings.deleteConfirm"), [
       {
-        text: "Cancelar",
+        text: t("common.cancel"),
         style: "cancel",
       },
       {
-        text: "Cerrar Sesión",
+        text: t("settings.deleteAccount"),
+        style: "destructive",
+        onPress: async () => {
+          try {
+            // Aquí implementarías la lógica para eliminar la cuenta
+            await storageService.clearStorage();
+            router.replace("/login");
+          } catch (error) {
+            Alert.alert(t("common.error"), t("settings.deleteAccountError"));
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleLogout = async () => {
+    Alert.alert(t("settings.logout"), t("settings.logoutConfirm"), [
+      {
+        text: t("common.cancel"),
+        style: "cancel",
+      },
+      {
+        text: t("settings.logout"),
         onPress: async () => {
           try {
             await storageService.clearStorage();
             router.replace("/login");
           } catch (error) {
-            Alert.alert(t("common.error"), "No se pudo cerrar sesión");
+            Alert.alert(t("common.error"), t("settings.logoutError"));
           }
         },
       },
     ]);
+  };
+
+  const handleLanguageChange = async (newLocale: "en" | "es") => {
+    // Prevenir cambios si ya hay uno en proceso
+    if (isChanging) {
+      return;
+    }
+
+    await changeLanguage(newLocale);
+
+    // Mostrar alerta después de que el cambio esté completo
+    setTimeout(() => {
+      Alert.alert(t("common.success"), t("settings.languageChanged"));
+    }, 150);
   };
 
   if (userLoading) {
@@ -158,13 +168,13 @@ export default function SettingsScreen() {
           {/* Información de la cuenta */}
           <View className="mb-6">
             <Text className="text-white text-[18px] font-semibold mb-4">
-              Información de la Cuenta
+              {t("settings.accountInfo")}
             </Text>
 
             {/* Username */}
             <View className="mb-4">
               <Text className="text-white/70 text-[14px] mb-2">
-                Nombre de Usuario
+                {t("settings.username")}
               </Text>
               <View className="bg-white/10 rounded-[8px] px-4 py-3 flex-row items-center">
                 <Ionicons name="person-outline" size={20} color="#FFFFFF" />
@@ -174,7 +184,7 @@ export default function SettingsScreen() {
                   editable={isEditing}
                   className="flex-1 text-white text-[16px] ml-3"
                   placeholderTextColor="#FFFFFF50"
-                  placeholder="Nombre de usuario"
+                  placeholder={t("settings.username")}
                 />
               </View>
             </View>
@@ -182,7 +192,7 @@ export default function SettingsScreen() {
             {/* Email */}
             <View className="mb-4">
               <Text className="text-white/70 text-[14px] mb-2">
-                Correo Electrónico
+                {t("settings.email")}
               </Text>
               <View className="bg-white/10 rounded-[8px] px-4 py-3 flex-row items-center">
                 <Ionicons name="mail-outline" size={20} color="#FFFFFF" />
@@ -192,13 +202,13 @@ export default function SettingsScreen() {
                   editable={false}
                   className="flex-1 text-white text-[16px] ml-3"
                   placeholderTextColor="#FFFFFF50"
-                  placeholder="correo@ejemplo.com"
+                  placeholder={t("settings.emailPlaceholder")}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
               </View>
               <Text className="text-white/40 text-[12px] mt-1">
-                El correo no se puede modificar
+                {t("settings.emailCantChange")}
               </Text>
             </View>
 
@@ -209,7 +219,7 @@ export default function SettingsScreen() {
                 className="bg-blue-600 rounded-[8px] py-3 items-center"
               >
                 <Text className="text-white text-[16px] font-semibold">
-                  Editar Perfil
+                  {t("settings.editProfile")}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -223,7 +233,7 @@ export default function SettingsScreen() {
                   className="flex-1 bg-white/10 rounded-[8px] py-3 items-center"
                 >
                   <Text className="text-white text-[16px] font-semibold">
-                    Cancelar
+                    {t("settings.cancel")}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -235,7 +245,7 @@ export default function SettingsScreen() {
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
                     <Text className="text-white text-[16px] font-semibold">
-                      Guardar
+                      {t("common.save")}
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -243,15 +253,70 @@ export default function SettingsScreen() {
             )}
           </View>
 
+          {/* Preferencias */}
+          <View className="mb-6">
+            <Text className="text-white text-[18px] font-semibold mb-4">
+              {t("settings.preferences")}
+            </Text>
+
+            {/* Selector de Idioma */}
+            <View className="mb-2">
+              <Text className="text-white/70 text-[14px] mb-2">
+                {t("settings.language")}
+              </Text>
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  onPress={() => handleLanguageChange("es")}
+                  disabled={isChanging || locale === "es"}
+                  className={`flex-1 rounded-[8px] py-3 px-4 flex-row items-center justify-center ${
+                    locale === "es" ? "bg-blue-600" : "bg-white/10"
+                  } ${isChanging ? "opacity-50" : ""}`}
+                >
+                  {isChanging && locale !== "es" ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Text className="text-white text-[16px] mr-2">🇪🇸</Text>
+                      <Text className="text-white text-[16px] font-semibold">
+                        {t("settings.spanish")}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleLanguageChange("en")}
+                  disabled={isChanging || locale === "en"}
+                  className={`flex-1 rounded-[8px] py-3 px-4 flex-row items-center justify-center ${
+                    locale === "en" ? "bg-blue-600" : "bg-white/10"
+                  } ${isChanging ? "opacity-50" : ""}`}
+                >
+                  {isChanging && locale !== "en" ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Text className="text-white text-[16px] mr-2">🇺🇸</Text>
+                      <Text className="text-white text-[16px] font-semibold">
+                        {t("settings.english")}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
           {/* Estadísticas */}
           <View className="mb-6">
             <Text className="text-white text-[18px] font-semibold mb-4">
-              Estadísticas
+              {t("settings.statistics")}
             </Text>
             <View className="bg-white/10 rounded-[8px] px-4 py-3 flex-row items-center justify-between">
               <View className="flex-row items-center">
                 <Ionicons name="people-outline" size={20} color="#FFFFFF" />
-                <Text className="text-white text-[16px] ml-3">Amigos</Text>
+                <Text className="text-white text-[16px] ml-3">
+                  {t("settings.friends")}
+                </Text>
               </View>
               {loadingStats ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
@@ -266,7 +331,7 @@ export default function SettingsScreen() {
           {/* Zona de peligro */}
           <View className="mb-8">
             <Text className="text-white text-[18px] font-semibold mb-4">
-              Zona de Peligro
+              {t("settings.dangerZone")}
             </Text>
 
             <TouchableOpacity
@@ -275,7 +340,7 @@ export default function SettingsScreen() {
             >
               <Ionicons name="log-out-outline" size={20} color="#FFFFFF" />
               <Text className="text-white text-[16px] font-semibold ml-2">
-                Cerrar Sesión
+                {t("settings.logout")}
               </Text>
             </TouchableOpacity>
 
@@ -285,7 +350,7 @@ export default function SettingsScreen() {
             >
               <Ionicons name="trash-outline" size={20} color="#FFFFFF" />
               <Text className="text-white text-[16px] font-semibold ml-2">
-                Eliminar Cuenta
+                {t("settings.deleteAccount")}
               </Text>
             </TouchableOpacity>
           </View>

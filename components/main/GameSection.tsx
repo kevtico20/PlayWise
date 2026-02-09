@@ -1,5 +1,6 @@
 import React from "react";
 import { ScrollView, Text, View } from "react-native";
+import { useTranslation } from "../../hooks/use-translation";
 import GameCard from "./GameCard";
 
 interface Game {
@@ -28,6 +29,8 @@ export default function GameSection({
   wishlistGameIds = [],
   onToggleWishlist,
 }: GameSectionProps) {
+  const { t } = useTranslation();
+
   return (
     <View className="mb-6">
       <View className="flex-row justify-between items-center px-[14] mb-2">
@@ -43,7 +46,7 @@ export default function GameSection({
             className="text-[#888] text-[14px] py-1 px-2"
             onPress={() => !isLoadingMore && onLoadMore()}
           >
-            {isLoadingMore ? "Cargando..." : "Ver más"}
+            {isLoadingMore ? t("common.loading") : t("common.viewMore")}
           </Text>
         )}
       </View>

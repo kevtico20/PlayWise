@@ -8,6 +8,7 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import { useTranslation } from "../../hooks/use-translation";
 
 interface Comment {
   id: string;
@@ -31,6 +32,7 @@ export default function CommentSection({
   onAddComment,
   onLikeComment,
 }: CommentSectionProps) {
+  const { t } = useTranslation();
   const [newComment, setNewComment] = useState("");
 
   const handleSubmit = () => {
@@ -105,7 +107,7 @@ export default function CommentSection({
       <View className="bg-white rounded-[8] p-3 mb-4">
         <TextInput
           className="text-[14px] text-[#333333] min-h-[40] mb-2"
-          placeholder="Add a Comment"
+          placeholder={t("games.writeComment")}
           placeholderTextColor="#999999"
           value={newComment}
           onChangeText={setNewComment}
@@ -121,7 +123,9 @@ export default function CommentSection({
             className="ml-auto bg-[#2196F3] px-4 py-[6] rounded-[4]"
             onPress={handleSubmit}
           >
-            <Text className="text-white text-[13px] font-semibold">Submit</Text>
+            <Text className="text-white text-[13px] font-semibold">
+              {t("common.submit")}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -129,7 +133,7 @@ export default function CommentSection({
       {/* Comments List */}
       <View className="bg-black/50 rounded-[12] p-3 min-h-[300]">
         <Text className="text-white text-[18px] font-semibold mb-3">
-          Comments
+          {t("games.comments")}
         </Text>
 
         <View>{comments.map(renderComment)}</View>

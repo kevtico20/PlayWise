@@ -4,13 +4,16 @@ import {
     FlatList,
     Text,
     TextInput,
-    View
+    View,
 } from "react-native";
 import GradientBackground from "../components/GradientBackground";
 import GameCard from "../components/main/GameCard";
+import { useTranslation } from "../hooks/use-translation";
 import { RawgGameShort, searchGames } from "../services/rawgService";
 
 export default function SearchScreen() {
+  const { t } = useTranslation();
+
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<RawgGameShort[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,7 +49,7 @@ export default function SearchScreen() {
         setHasMore(!!(resp as any).next);
       } catch (e: any) {
         console.warn("Search error:", e);
-        setError(e?.message || "Error buscando juegos. Verifica tu conexión.");
+        setError(e?.message || t("games.searchError"));
       } finally {
         setLoading(false);
       }
@@ -97,7 +100,7 @@ export default function SearchScreen() {
           <TextInput
             value={query}
             onChangeText={setQuery}
-            placeholder="Buscar juegos..."
+            placeholder={t("games.search")}
             placeholderTextColor="#C0C0C0"
             className="bg-[#222] text-white px-3 py-2 rounded-md"
             autoFocus
@@ -118,7 +121,7 @@ export default function SearchScreen() {
 
         {!loading && !error && results.length === 0 && query.trim() !== "" && (
           <View className="items-center mt-4">
-            <Text className="text-white">No se encontraron juegos</Text>
+            <Text className="text-white">{t("games.noGamesFound")}</Text>
           </View>
         )}
 

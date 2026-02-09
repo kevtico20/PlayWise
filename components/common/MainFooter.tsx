@@ -1,8 +1,11 @@
 import React from "react";
 import { Linking, Text, TouchableOpacity, View } from "react-native";
 import { APP_COLORS } from "../../constants/colors";
+import { useTranslation } from "../../hooks/use-translation";
 
 export default function MainFooter() {
+  const { t } = useTranslation();
+
   return (
     <View className="py-6 px-4 items-center justify-center bg-transparent">
       <Text
@@ -13,7 +16,7 @@ export default function MainFooter() {
       </Text>
 
       <Text className="text-[#cfcfcf] text-[12px] text-center mb-[10]">
-        Encuentra juegos, compara precios y descubre novedades.
+        {t("footer.tagline")}
       </Text>
 
       <View className="flex-row justify-center items-center mb-[10] space-x-4">
@@ -21,19 +24,25 @@ export default function MainFooter() {
           onPress={() => Linking.openURL("mailto:playwiseapp2025@gmail.com")}
           accessibilityLabel="Enviar correo a soporte"
         >
-          <Text className="text-white text-[12px] underline">Soporte</Text>
+          <Text className="text-white text-[12px] underline">
+            {t("footer.support")}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => Linking.openURL("https://example.com/privacy")}
         >
-          <Text className="text-white text-[12px] underline">Privacidad</Text>
+          <Text className="text-white text-[12px] underline">
+            {t("footer.privacy")}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => Linking.openURL("https://example.com/terms")}
         >
-          <Text className="text-white text-[12px] underline">Términos</Text>
+          <Text className="text-white text-[12px] underline">
+            {t("footer.terms")}
+          </Text>
         </TouchableOpacity>
       </View>
 

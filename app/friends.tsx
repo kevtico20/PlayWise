@@ -46,7 +46,9 @@ export default function FriendsScreen() {
   const [actionLoading, setActionLoading] = useState(false);
   const [expandedFriendId, setExpandedFriendId] = useState<string | null>(null);
   const [commonGames, setCommonGames] = useState<Record<string, any[]>>({});
-  const [loadingCommonGames, setLoadingCommonGames] = useState<Record<string, boolean>>({});
+  const [loadingCommonGames, setLoadingCommonGames] = useState<
+    Record<string, boolean>
+  >({});
 
   const currentUserRef = React.useRef<any>(null);
   const debounceRef = useRef<any>(null);
@@ -178,15 +180,15 @@ export default function FriendsScreen() {
     friendUsername: string,
   ) {
     Alert.alert(
-      "Eliminar Amigo",
-      `¿Estás seguro de que quieres eliminar a ${friendUsername} de tu lista de amigos?`,
+      t("friends.removeFriendTitle"),
+      t("friends.removeFriendMessage").replace("{username}", friendUsername),
       [
         {
-          text: "Cancelar",
+          text: t("common.cancel"),
           style: "cancel",
         },
         {
-          text: "Eliminar",
+          text: t("common.delete"),
           style: "destructive",
           onPress: async () => {
             try {
@@ -195,7 +197,7 @@ export default function FriendsScreen() {
               await loadFriends();
             } catch (err) {
               console.warn("Error removing friend", err);
-              Alert.alert("Error", "No se pudo eliminar el amigo");
+              Alert.alert(t("common.error"), t("friends.removeFriendError"));
             } finally {
               setActionLoading(false);
             }
@@ -214,7 +216,7 @@ export default function FriendsScreen() {
 
     // Expandir y cargar juegos en común si no están cargados
     setExpandedFriendId(friendUserId);
-    
+
     if (!commonGames[friendUserId]) {
       try {
         setLoadingCommonGames((prev) => ({ ...prev, [friendUserId]: true }));
@@ -277,7 +279,7 @@ export default function FriendsScreen() {
             {results.length > 0 && (
               <View className="mb-4">
                 <Text className="text-white font-semibold mb-2">
-                  Resultados
+                  {t("friends.searchResults")}
                 </Text>
                 <FlatList
                   data={results}
@@ -287,15 +289,21 @@ export default function FriendsScreen() {
                       <Text className="text-white">{item.username}</Text>
                       {item.friendship_status === "accepted" ? (
                         <View className="px-3 py-1 bg-[#22c55e] rounded-md">
-                          <Text className="text-white">Amigos</Text>
+                          <Text className="text-white">
+                            {t("friends.alreadyFriends")}
+                          </Text>
                         </View>
                       ) : item.friendship_status === "sent_pending" ? (
                         <View className="px-3 py-1 bg-[#f59e0b] rounded-md">
-                          <Text className="text-white">Pendiente</Text>
+                          <Text className="text-white">
+                            {t("friends.pending")}
+                          </Text>
                         </View>
                       ) : item.friendship_status === "pending" ? (
                         <View className="px-3 py-1 bg-[#8b5cf6] rounded-md">
-                          <Text className="text-white">Te envió solicitud</Text>
+                          <Text className="text-white">
+                            {t("friends.requestSent")}
+                          </Text>
                         </View>
                       ) : (
                         <TouchableOpacity
@@ -303,7 +311,9 @@ export default function FriendsScreen() {
                           disabled={actionLoading}
                           className="px-3 py-1 bg-[#4A9EFF] rounded-md"
                         >
-                          <Text className="text-white">Enviar solicitud</Text>
+                          <Text className="text-white">
+                            {t("friends.addFriend")}
+                          </Text>
                         </TouchableOpacity>
                       )}
                     </View>
@@ -315,7 +325,9 @@ export default function FriendsScreen() {
             {/* If no results, allow sending request by username (fallback) */}
             {!searching && results.length === 0 && query.trim() !== "" && (
               <View className="mb-4">
-                <Text className="text-white font-semibold mb-2">Enviar a</Text>
+                <Text className="text-white font-semibold mb-2">
+                  {t("friends.searchUser")}
+                </Text>
                 <View className="flex-row items-center justify-between bg-[#111] p-3 rounded-md mb-2">
                   <Text className="text-white">{query.trim()}</Text>
                   <TouchableOpacity
@@ -326,7 +338,9 @@ export default function FriendsScreen() {
                     {actionLoading ? (
                       <ActivityIndicator color="#FFF" />
                     ) : (
-                      <Text className="text-white">Enviar solicitud</Text>
+                      <Text className="text-white">
+                        {t("friends.addFriend")}
+                      </Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -335,12 +349,14 @@ export default function FriendsScreen() {
 
             {/* Incoming requests */}
             <Text className="text-white font-semibold mb-2 mt-4">
-              Solicitudes Pendientes
+              {t("friends.incomingRequests")}
             </Text>
             {loadingIncoming ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : incoming.length === 0 ? (
-              <Text className="text-white/70 mb-4">No hay solicitudes</Text>
+              <Text className="text-white/70 mb-4">
+                {t("friends.noRequests")}
+              </Text>
             ) : (
               <FlatList
                 data={incoming}
@@ -378,12 +394,12 @@ export default function FriendsScreen() {
 
             {/* Friends list */}
             <Text className="text-white font-semibold mb-2 mt-4">
-              Mis Amigos ({friends.length})
+              {t("friends.myFriends")} ({friends.length})
             </Text>
             {loadingFriends ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : friends.length === 0 ? (
-              <Text className="text-white/70">No tienes amigos aún</Text>
+              <Text className="text-white/70">{t("friends.noFriends")}</Text>
             ) : (
               <FlatList
                 data={friends}
@@ -453,13 +469,13 @@ export default function FriendsScreen() {
                       {isExpanded && (
                         <View className="bg-[#1a1a1a] p-3 rounded-md mt-1">
                           <Text className="text-white/80 font-semibold mb-2">
-                            🎮 Juegos en común ({games.length})
+                            🎮 {t("friends.commonGames")} ({games.length})
                           </Text>
                           {isLoadingGames ? (
                             <ActivityIndicator color="#FFFFFF" />
                           ) : games.length === 0 ? (
                             <Text className="text-white/50 text-sm">
-                              No tienen juegos en común en sus wishlists
+                              {t("friends.noCommonGames")}
                             </Text>
                           ) : (
                             <View>
@@ -484,11 +500,17 @@ export default function FriendsScreen() {
                                     </View>
                                   )}
                                   <View className="flex-1">
-                                    <Text className="text-white font-medium" numberOfLines={1}>
+                                    <Text
+                                      className="text-white font-medium"
+                                      numberOfLines={1}
+                                    >
                                       {game.game_name}
                                     </Text>
                                     {game.game_genre && (
-                                      <Text className="text-white/50 text-xs" numberOfLines={1}>
+                                      <Text
+                                        className="text-white/50 text-xs"
+                                        numberOfLines={1}
+                                      >
                                         {game.game_genre}
                                       </Text>
                                     )}

@@ -3,16 +3,16 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    FlatList,
+    Image,
+    Text,
+    TouchableOpacity,
+    View,
 } from "react-native";
 import {
-  GestureHandlerRootView,
-  Swipeable,
+    GestureHandlerRootView,
+    Swipeable,
 } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { APP_COLORS } from "../constants/colors";
@@ -151,7 +151,7 @@ export default function WishlistScreen() {
             ) : items.length === 0 ? (
               <View className="flex-1 items-center justify-center">
                 <Text className="text-white/50 text-[16px]">
-                  {t("games.wishlist")} vacía
+                  {t("games.wishlist")} {t("games.wishlistEmpty")}
                 </Text>
               </View>
             ) : (

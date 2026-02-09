@@ -1,6 +1,6 @@
 /**
  * AI Recommendations Section Component
- * Muestra recomendaciones personalizadas generadas por IA (Gemini)
+ * Muestra recomendaciones personalizadas generadas por IA (Groq)
  */
 
 import { useRouter } from "expo-router";
@@ -12,8 +12,9 @@ import {
     ScrollView,
     Text,
     TouchableOpacity,
-    View
+    View,
 } from "react-native";
+import { useTranslation } from "../../hooks/use-translation";
 import recommendationService, {
     GameRecommendation,
 } from "../../services/recommendationService";
@@ -25,6 +26,7 @@ interface RecommendationsSectionProps {
 export default function RecommendationsSection({
   wishlistGameIds = [],
 }: RecommendationsSectionProps) {
+  const { t } = useTranslation();
   const [recommendations, setRecommendations] = useState<GameRecommendation[]>(
     [],
   );
@@ -53,7 +55,7 @@ export default function RecommendationsSection({
         const fallbackResponse = await recommendationService.getPopularGames(5);
         setRecommendations(fallbackResponse.recommendations);
       } catch (fallbackErr) {
-        setError("No se pudieron cargar las recomendaciones");
+        setError(t("recommendations.error"));
       }
     } finally {
       setLoading(false);
@@ -69,7 +71,7 @@ export default function RecommendationsSection({
           id: game.api_id,
           title: game.name,
           image: game.cover_image || "",
-          genre: game.genre || "Varios",
+          genre: game.genre || t("games.various"),
         },
       });
     }
@@ -81,13 +83,13 @@ export default function RecommendationsSection({
         <View className="flex-row items-center mb-3">
           <Sparkles size={20} color="#FFD700" fill="#FFD700" />
           <Text className="text-white text-[20px] font-semibold ml-2">
-            Recomendaciones IA
+            {t("recommendations.title")}
           </Text>
         </View>
         <View className="items-center py-8">
           <ActivityIndicator size="large" color="#FFD700" />
           <Text className="text-gray-400 mt-2">
-            Generando recomendaciones...
+            {t("recommendations.loading")}
           </Text>
         </View>
       </View>
@@ -100,7 +102,7 @@ export default function RecommendationsSection({
         <View className="flex-row items-center mb-3">
           <Sparkles size={20} color="#FFD700" fill="#FFD700" />
           <Text className="text-white text-[20px] font-semibold ml-2">
-            Recomendaciones IA
+            {t("recommendations.title")}
           </Text>
         </View>
         <View className="bg-red-900/20 p-4 rounded-lg">
@@ -109,7 +111,9 @@ export default function RecommendationsSection({
             onPress={loadRecommendations}
             className="mt-2 bg-red-700 py-2 px-4 rounded"
           >
-            <Text className="text-white text-center">Reintentar</Text>
+            <Text className="text-white text-center">
+              {t("recommendations.retry")}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -127,11 +131,13 @@ export default function RecommendationsSection({
         <View className="flex-row items-center">
           <Sparkles size={20} color="#FFD700" fill="#FFD700" />
           <Text className="text-white text-[20px] font-semibold ml-2">
-            Recomendaciones IA
+            {t("recommendations.title")}
           </Text>
         </View>
         <TouchableOpacity onPress={loadRecommendations}>
-          <Text className="text-[#FFD700] text-[14px]">Actualizar</Text>
+          <Text className="text-[#FFD700] text-[14px]">
+            {t("recommendations.refresh")}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -164,14 +170,14 @@ export default function RecommendationsSection({
               <View className="absolute top-2 right-2 bg-yellow-500/90 px-2 py-1 rounded-full flex-row items-center">
                 <Sparkles size={12} color="#000" fill="#000" />
                 <Text className="text-black text-[10px] font-bold ml-1">
-                  IA
+                  {t("recommendations.aiPowered")}
                 </Text>
               </View>
 
               {/* Similarity Score */}
               <View className="absolute bottom-2 left-2 bg-black/70 px-2 py-1 rounded">
                 <Text className="text-yellow-400 text-[12px] font-semibold">
-                  {game.similarity_score}% match
+                  {game.similarity_score}% {t("recommendations.similarity")}
                 </Text>
               </View>
             </View>

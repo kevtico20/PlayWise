@@ -1,6 +1,7 @@
 ﻿import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import { useTranslation } from "../../hooks/use-translation";
 import { CheapSharkDeal } from "../../services/cheapSharkService";
 import StoreCard from "./StoreCard";
 
@@ -20,6 +21,7 @@ export default function GameVariantAccordion({
   isFirst = false,
 }: GameVariantAccordionProps) {
   const [isExpanded, setIsExpanded] = useState(isFirst);
+  const { t } = useTranslation();
 
   return (
     <View className="mb-[5] mx-[10]">
@@ -50,7 +52,9 @@ export default function GameVariantAccordion({
               storeLogo={
                 storeLogos[deal.storeID || "unknown"] || storeLogos["unknown"]
               }
-              storeName={storeNames[deal.storeID || ""] || "Unknown Store"}
+              storeName={
+                storeNames[deal.storeID || ""] || t("store.unknownStore")
+              }
               price={deal.salePrice || deal.normalPrice || "0.00"}
               originalPrice={deal.normalPrice}
               discount={deal.savings}

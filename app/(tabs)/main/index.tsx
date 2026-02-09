@@ -13,6 +13,7 @@ import MainHeader from "../../../components/main/MainHeader";
 import RecommendationsSection from "../../../components/main/RecommendationsSection";
 import { APP_COLORS } from "../../../constants/colors";
 import GAME_CATEGORIES from "../../../constants/gameCategories";
+import { useTranslation } from "../../../hooks/use-translation";
 import {
     getGamesByGenre,
     getTopRatedGames,
@@ -130,6 +131,8 @@ type CategoryState = {
 };
 
 export default function MainScreen() {
+  const { t } = useTranslation();
+
   const [categoriesData, setCategoriesData] = useState<
     Record<string, CategoryState>
   >(() => {
@@ -310,7 +313,7 @@ export default function MainScreen() {
                 {/* Hero: show skeleton until heroGames are loaded */}
                 {heroGames.length === 0 ? (
                   <View className="h-[340] w-full items-center justify-center">
-                    <Text className="text-white">Cargando hero...</Text>
+                    <Text className="text-white">{t("games.loadingHero")}</Text>
                   </View>
                 ) : (
                   <ErrorBoundary>
@@ -332,7 +335,7 @@ export default function MainScreen() {
                 categoriesData[cat.key].games.length > 0 ? (
                   <GameSection
                     key={cat.key}
-                    title={cat.title}
+                    title={t(cat.title)}
                     games={categoriesData[cat.key]?.games || []}
                     wishlistGameIds={wishlistGameIds}
                     onLoadMore={() => {
