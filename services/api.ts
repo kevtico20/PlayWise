@@ -3,6 +3,8 @@
  * Configuración central para todas las peticiones HTTP al backend
  */
 
+import { router } from "expo-router";
+import { Alert } from "react-native";
 import storageService from "./storageService";
 
 // Obtener URL de la API desde variables de entorno
@@ -157,22 +159,55 @@ export async function fetchAuthAPI<T>(
 
             // Reintentar la petición original con el nuevo token
             console.log("✅ Token renovado, reintentando petición...");
-            return await fetchAPI<T>(
+            // Important: use fetchAuthAPI again so 401 can trigger refresh flow recursively.
+            // Also, make sure we don't reuse a stale Authorization header from options.
+            const { headers, ...restOptions } = options as any;
+            return await fetchAuthAPI<T>(
               endpoint,
+              response.access_token,
               {
-                ...options,
+                ...restOptions,
                 headers: {
-                  ...options.headers,
-                  Authorization: `Bearer ${response.access_token}`,
+                  ...headers,
                 },
               },
               silentErrors,
             );
           }
         }
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         console.error("❌ Error renovando token:", refreshError);
-        // Si falla la renovación, lanzar el error original
+        // Si falla la renovación, limpiar el storage para evitar loops y forzar login
+        try {
+          await storageService.clear();
+        } catch (e) {
+          /* ignore */
+        }
+
+        try {
+          // Mostrar alerta al usuario y redirigir a login
+          Alert.alert(
+            "Sesión expirada",
+            "Tu sesión ha caducado. Por favor inicia sesión nuevamente.",
+            [
+              {
+                text: "Aceptar",
+                onPress: () => {
+                  try {
+                    router.replace("/login");
+                  } catch (e) {
+                    // ignore navigation errors
+                  }
+                },
+              },
+            ],
+            { cancelable: false },
+          );
+        } catch (e) {
+          // ignore alert/navigation errors
+        }
+
+        // Luego lanzar el error original para que los callers puedan manejarlo si lo desean
       }
     }
 

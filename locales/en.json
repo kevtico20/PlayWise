@@ -110,6 +110,7 @@
   },
   "friends": {
     "title": "Friends",
+    "searchPlaceholder": "Search user...",
     "addFriend": "Add friend",
     "removeFriend": "Remove friend",
     "pending": "Pending",

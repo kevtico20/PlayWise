@@ -8,6 +8,7 @@ import * as Application from "expo-application";
 import * as Device from "expo-device";
 import { Platform } from "react-native";
 import { fetchAPI } from "./api";
+import storageService from "./storageService";
 
 // ==================== INTERFACES ====================
 export interface RegisterRequest {
@@ -421,15 +422,182 @@ class AuthService {
   async refreshAccessToken(refreshToken: string): Promise<LoginResponse> {
     try {
       console.log("🔄 Renovando access token...");
-      const response = await fetchAPI<LoginResponse>("/auth/refresh", {
-        method: "POST",
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
+      // Some backends expect a user_id query parameter when refreshing tokens.
+      // Try to include it if we have stored user data to satisfy such backends.
+      let endpoint = "/auth/refresh";
+      try {
+        // Prefer to derive the exact user identifier the backend expects.
+        // Try multiple sources (access token claims, refresh token claims, stored user) in that order.
+        const user = await storageService.getUserData();
+        let userIdToUse: any = null;
 
-      console.log("✅ Token renovado exitosamente");
-      return response;
-    } catch (error) {
+        try {
+          // 1) Try access token claims (even if expired, it often contains sub/claims)
+          const accessToken = await storageService.getAccessToken();
+          if (accessToken) {
+            const decodedAccess = decodeToken(accessToken);
+            userIdToUse =
+              decodedAccess?.sub ||
+              decodedAccess?.user_id ||
+              decodedAccess?.id ||
+              null;
+            if (userIdToUse) {
+              console.log(
+                "🔎 user_id extraído del access token (claims):",
+                String(userIdToUse).slice(-8),
+              );
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+
+        // 2) If not found, try refresh token claims (if JWT)
+        if (!userIdToUse && typeof refreshToken === "string") {
+          try {
+            const decoded = decodeToken(refreshToken);
+            userIdToUse =
+              decoded?.sub || decoded?.user_id || decoded?.id || null;
+            if (userIdToUse) {
+              console.log(
+                "🔎 user_id extraído del refresh token (claims):",
+                String(userIdToUse).slice(-8),
+              );
+            }
+          } catch (e) {
+            // ignore decoding errors
+          }
+        }
+
+        // 3) If still not found, fall back to stored user.id
+        if (!userIdToUse && user && user.id) {
+          userIdToUse = user.id;
+          console.log(
+            "🔎 user_id extraído de storage.user.id:",
+            String(userIdToUse).slice(-8),
+          );
+        }
+
+        // 4) As last resort try username or email if available
+        if (!userIdToUse && user) {
+          userIdToUse = user.username || user.email || null;
+          if (userIdToUse) {
+            console.log(
+              "🔎 user identifier fallback (username/email):",
+              String(userIdToUse),
+            );
+          }
+        }
+
+        if (userIdToUse) {
+          endpoint = `/auth/refresh?user_id=${encodeURIComponent(String(userIdToUse))}`;
+        }
+      } catch (e) {
+        // ignore storage/decoding errors and proceed without user id
+      }
+
+      // Helper to mask token when logging (avoid full token leaks)
+      const mask = (s: string) =>
+        s && s.length > 8 ? `***${s.slice(-6)}` : "***";
+
+      console.log("🔍 Intentando refresh con user_id endpoint:", endpoint);
+
+      // First attempt: JSON body with refresh_token (existing behavior)
+      try {
+        const response = await fetchAPI<LoginResponse>(endpoint, {
+          method: "POST",
+          body: JSON.stringify({ refresh_token: refreshToken }),
+        });
+        console.log("✅ Token renovado exitosamente (json body)");
+        return response;
+      } catch (firstErr: any) {
+        console.warn(
+          "⚠️ Primer intento de refresh falló:",
+          firstErr?.message || firstErr,
+        );
+
+        // If server says invalid user, try alternative payloads before giving up
+        if (firstErr && firstErr.status === 401) {
+          console.log(
+            "🔁 Intentando formatos alternativos de refresh (falló json body)",
+          );
+
+          // Attempt 2: no user_id in query (some backends reject mismatched user_id)
+          try {
+            const resp2 = await fetchAPI<LoginResponse>("/auth/refresh", {
+              method: "POST",
+              body: JSON.stringify({ refresh_token: refreshToken }),
+            });
+            console.log("✅ Token renovado exitosamente (sin user_id)");
+            return resp2;
+          } catch (err2: any) {
+            console.warn(
+              "⚠️ Intento sin user_id falló:",
+              err2?.message || err2,
+            );
+          }
+
+          // Attempt 3: form-urlencoded body
+          try {
+            const form = new URLSearchParams();
+            form.append("refresh_token", refreshToken);
+            const resp3 = await fetchAPI<LoginResponse>("/auth/refresh", {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: form.toString(),
+            });
+            console.log("✅ Token renovado exitosamente (form-urlencoded)");
+            return resp3;
+          } catch (err3: any) {
+            console.warn(
+              "⚠️ Intento form-urlencoded falló:",
+              err3?.message || err3,
+            );
+          }
+
+          // Attempt 4: send refresh token in Authorization header
+          try {
+            const resp4 = await fetchAPI<LoginResponse>("/auth/refresh", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${refreshToken}` },
+            });
+            console.log(
+              "✅ Token renovado exitosamente (Authorization header)",
+            );
+            return resp4;
+          } catch (err4: any) {
+            console.warn(
+              "⚠️ Intento con Authorization header falló:",
+              err4?.message || err4,
+            );
+          }
+        }
+
+        // If we reach here, all attempts failed — rethrow original first error
+        throw firstErr;
+      }
+    } catch (error: any) {
       console.error("❌ Error renovando token:", error);
+
+      // If the refresh failed with 401/Invalid user, clear local storage to prevent loops
+      try {
+        if (error && error.status === 401) {
+          console.log(
+            "🧹 Refresh failed with 401 — clearing local storage and requiring login",
+          );
+          await storageService.clear();
+          // Provide a clear message to upstream
+          throw {
+            status: 401,
+            message:
+              "Refresh failed: invalid user or expired refresh token. Please login again.",
+            data: (error as any)?.data,
+          };
+        }
+      } catch (e) {
+        // ignore clear errors
+      }
+
       throw this.handleError(error);
     }
   }
