@@ -262,6 +262,28 @@ class WishlistService {
       throw new Error(err?.message || "Error al eliminar de wishlist");
     }
   }
+
+  /**
+   * Obtener juegos en común en wishlist entre el usuario actual y otro usuario
+   */
+  async getCommonGames(friendUserId: string): Promise<any[]> {
+    try {
+      const token = await storageService.getAccessToken();
+      if (!token) return [];
+
+      const res = await fetchAuthAPI<any[]>(
+        `/wishlists/common/${encodeURIComponent(friendUserId)}`,
+        token,
+        {
+          method: "GET",
+        },
+      );
+      return Array.isArray(res) ? res : [];
+    } catch (err: any) {
+      console.warn("⚠️ Error obteniendo juegos en común:", err?.message || err);
+      return [];
+    }
+  }
 }
 
 export default new WishlistService();
