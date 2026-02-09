@@ -10,12 +10,13 @@ import SectionSkeleton from "../../../components/common/SectionSkeleton";
 import GameSection from "../../../components/main/GameSection";
 import HeroSection from "../../../components/main/HeroSection";
 import MainHeader from "../../../components/main/MainHeader";
+import RecommendationsSection from "../../../components/main/RecommendationsSection";
 import { APP_COLORS } from "../../../constants/colors";
 import GAME_CATEGORIES from "../../../constants/gameCategories";
 import {
-  getGamesByGenre,
-  getTopRatedGames,
-  RawgGameShort,
+    getGamesByGenre,
+    getTopRatedGames,
+    RawgGameShort,
 } from "../../../services/rawgService";
 import wishlistService from "../../../services/wishlistService";
 
@@ -319,6 +320,11 @@ export default function MainScreen() {
 
                 <MainHeader />
               </View>
+
+              {/* AI Recommendations Section */}
+              <ErrorBoundary>
+                <RecommendationsSection wishlistGameIds={wishlistGameIds} />
+              </ErrorBoundary>
 
               {GAME_CATEGORIES.map((cat) =>
                 categoriesData[cat.key] &&
